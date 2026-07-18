@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gnnarrate"
+version = "0.1.0"
+description = "LLM-generated narratives for graph neural network explanations in precision medicine"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Abdullah M. Bishara" }]
+keywords = [
+    "explainable-ai",
+    "graph-neural-networks",
+    "large-language-models",
+    "precision-medicine",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "flask>=2.0",
+    "openai>=1.0",
+]
+
+[project.optional-dependencies]
+groq = ["groq>=0.4"]
+dev = ["pytest>=7.0", "groq>=0.4"]
+
+[project.urls]
+Homepage = "https://github.com/abdullahbishara/gnnarrate"
+Upstream-CLARUS = "https://github.com/asaranti/GNN_Counterfactuals"
+
+[tool.setuptools.packages.find]
+include = ["gnnarrate*"]

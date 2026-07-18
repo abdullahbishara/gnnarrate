@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+title: >-
+  GNNarrate: LLM-generated narratives for graph neural network
+  explanations in precision medicine
+message: >-
+  If you use this software, please cite both this repository and
+  the CLARUS paper listed under references.
+type: software
+authors:
+  - given-names: Abdullah M.
+    family-names: Bishara
+repository-code: https://github.com/abdullahbishara/gnnarrate
+abstract: >-
+  A narration layer for graph neural network explainability. GNNarrate
+  converts the raw explanation logs produced by the CLARUS platform --
+  node and edge relevance scores, prediction confidence deltas after
+  counterfactual graph edits, and retraining metrics -- into plain-language
+  causal explanations for each patient, aimed at clinicians and biomedical
+  researchers rather than machine learning practitioners.
+keywords:
+  - explainable AI
+  - graph neural networks
+  - large language models
+  - precision medicine
+  - counterfactual explanation
+license: MIT
+version: 0.1.0
+references:
+  - type: article
+    title: >-
+      CLARUS: An interactive explainable AI platform for manual
+      counterfactuals in graph neural networks
+    authors:
+      - given-names: Jacqueline Michelle
+        family-names: Metsch
+      - given-names: Anna
+        family-names: Saranti
+      - given-names: Alessa
+        family-names: Angerschmid
+      - given-names: Bastian
+        family-names: Pfeifer
+      - given-names: Vanessa
+        family-names: Klemt
+      - given-names: Andreas
+        family-names: Holzinger
+      - given-names: Anne-Christin
+        family-names: Hauschild
+    journal: Journal of Biomedical Informatics
+    year: 2024
+    url: https://www.sciencedirect.com/science/article/pii/S1532046424000182

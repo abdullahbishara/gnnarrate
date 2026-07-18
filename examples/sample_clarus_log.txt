@@ -1,0 +1,51 @@
+Dataset selected: KIRC SubNet
+GNN TN: 21, FP: 29, FN: 6, TP: 71
+GNN Sensitivity: 0.92%, Specificity: 0.42%
+Currently selected: Patient 0, Graph 0
+Amount of modified graphs for this patient: 0
+Patient Information: In Training Data, True label = 1, Predicted label = 0, GNNs prediction confidence = -0.36
+Node relevance scores:
+Node MGAT3: 0.87
+Node MGAT4B: 0.86
+Node MGAT5: 0.14
+Node MGAT5B: 0.14
+Edge relevance scores:
+MGAT3-MGAT4B: IG=0.01, Saliency=0.8
+MGAT3-MGAT5: IG=0.84, Saliency=0.93
+MGAT4B-MGAT5: IG=0.97, Saliency=0.92
+MGAT4B-MGAT5B: IG=1, Saliency=1
+MGAT5-MGAT5B: IG=0.43, Saliency=0.74
+############################################################################################
+Node deleted: MGAT3
+Changes saved for patient 0 in graph number 1
+Retraining GNN
+GNN TN: 20, FP: 30, FN: 3, TP: 74
+GNN Sensitivity: 0.96%, Specificity: 0.4%
+Currently selected: Patient 0, Graph 1
+Amount of modified graphs for this patient: 1
+Patient Information: In Training Data, True label = 1, Predicted label = 1, GNNs prediction confidence = 1.53
+Node relevance scores:
+Node MGAT4B: 0.84
+Node MGAT5: 0.14
+Node MGAT5B: 0.13
+Edge relevance scores:
+MGAT4B-MGAT5: IG=1, Saliency=1
+MGAT4B-MGAT5B: IG=0.72, Saliency=0.57
+MGAT5-MGAT5B: IG=0.22, Saliency=0.32
+############################################################################################
+Edge deleted between nodes: MGAT4B and MGAT5
+Changes saved for patient 0 in graph number 2
+Retraining GNN
+GNN TN: 29, FP: 21, FN: 12, TP: 65
+GNN Sensitivity: 0.84%, Specificity: 0.58%
+Currently selected: Patient 0, Graph 2
+Amount of modified graphs for this patient: 2
+Patient Information: In Training Data, True label = 1, Predicted label = 1, GNNs prediction confidence = 0.21
+Node relevance scores:
+Node MGAT4B: 0.87
+Node MGAT5: 0.13
+Node MGAT5B: 0.15
+Edge relevance scores:
+MGAT4B-MGAT5B: IG=1, Saliency=1
+MGAT5-MGAT5B: IG=0.04, Saliency=0.28
+############################################################################################

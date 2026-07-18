@@ -1,0 +1,26 @@
+# Credentials -- never commit. Use .env.example as the template.
+.env
+
+# Byte-compiled
+__pycache__/
+*.py[cod]
+
+# Packaging / distribution
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
