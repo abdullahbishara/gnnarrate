@@ -58,7 +58,7 @@ def explain_model_prediction(
     provider: Provider = "anthropic",
     model: str | None = None,
     temperature: float | None = None,
-    max_tokens: int = 1024,
+    max_tokens: int = 4096,
 ) -> str:
     """Send `prompt` to the configured LLM and return the explanation text.
 
