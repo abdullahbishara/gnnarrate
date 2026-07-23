@@ -14,9 +14,16 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 
-from .clarus_log import ParsedLog
+from .clarus_log import ParsedLog, parse_clarus_log
 from .faithfulness import FaithfulnessReport, score_faithfulness
 from .grounding import DiseaseAssociations, GroundingReport, score_grounding
+
+# Prompt-flag presets a benchmark can vary the narrative over.
+PROMPT_VARIANTS: dict[str, dict] = {
+    "default": {},
+    "verbose": {"verbose": True},
+    "no_biomedical": {"biomedical_context": False},
+}
 
 
 @dataclass
@@ -138,15 +145,37 @@ def generate_records(
 ) -> list[NarrativeRecord]:
     """Build the corpus by generating a narrative per (log, model, variant).
 
-    `logs` is an iterable of (item_id, ParsedLog). `generate_fn(log, model, variant)`
-    returns narrative text -- a stub in tests, an LLM call in production.
+    `logs` is an iterable of (item_id, raw_log_text). Each raw log is parsed once
+    (for scoring) and passed as text to `generate_fn(log_text, model, variant)`,
+    which returns narrative text -- a stub in tests, an LLM call in production.
     """
     records = []
-    for item_id, log in logs:
+    for item_id, raw_text in logs:
+        parsed = parse_clarus_log(raw_text)
         for model in models:
             for variant in prompt_variants:
-                narrative = generate_fn(log, model, variant)
+                narrative = generate_fn(raw_text, model, variant)
                 records.append(
-                    NarrativeRecord(item_id, log, narrative, model, variant)
+                    NarrativeRecord(item_id, parsed, narrative, model, variant)
                 )
     return records
+
+
+def llm_generator(provider: str = "anthropic", temperature: float = 1.0):
+    """Build a generate_fn that turns a CLARUS log into a narrative via an LLM.
+
+    `variant` selects a preset from PROMPT_VARIANTS (prompt-flag kwargs). `model`
+    is the provider's model id. Needs an API key; not used by the test suite.
+    """
+
+    def _generate(log_text: str, model: str, variant: str) -> str:
+        from .llm import explain_model_prediction
+        from .prompts import generate_gnn_explanation_prompt
+
+        kwargs = PROMPT_VARIANTS.get(variant, {})
+        prompt = generate_gnn_explanation_prompt(log_text, **kwargs)
+        return explain_model_prediction(
+            prompt, provider=provider, model=model, temperature=temperature
+        )
+
+    return _generate

@@ -71,10 +71,11 @@ Then provide an API key:
 ```bash
 cp .env.example .env      # then edit .env
 # or:
-export OPENAI_API_KEY=sk-proj-...
+export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-OpenAI is the default provider; Groq is supported via `--provider groq`.
+Anthropic (Claude Opus 4.8) is the default provider; OpenAI and Groq are
+supported via `--provider openai` / `--provider groq`.
 
 ---
 
@@ -121,6 +122,52 @@ curl -X POST http://localhost:5000/llm_prediction \
 ```
 
 ---
+
+## Evaluation pipeline
+
+Beyond generating explanations, GNNarrate scores whether they can be trusted --
+the core of the research contribution. Three tiers, each independently usable:
+
+**Tier 1 — structural faithfulness** (`gnnarrate.faithfulness`). Is the narrative
+faithful to the attribution log? Measures recall of the top-ranked genes, flags
+genes it invents (closed-vocabulary), and checks whether it reports each
+counterfactual edit's outcome correctly. Fully automatic, no external data.
+
+```bash
+python examples/score_faithfulness.py examples/sample_clarus_log.txt --demo
+```
+
+**Tier 2 — gene-disease grounding** (`gnnarrate.grounding`). When the narrative
+claims a gene is linked to the patient's disease, is that supported by a
+knowledge base? Since the disease is fixed per dataset, this is a lookup against
+Open Targets association scores. Fetch once and cache:
+
+```python
+from gnnarrate.opentargets import search_disease, fetch_open_targets_associations
+search_disease("clear cell renal carcinoma")          # -> [(MONDO id, name), ...]
+assoc = fetch_open_targets_associations("MONDO_0005005")
+assoc.to_tsv("data/kirc_open_targets.tsv")            # reuse offline
+```
+
+Gene Ontology encodes gene *function*, not disease links, which is why grounding
+uses a gene-disease knowledge base. Knowledge bases are incomplete, so an
+unsupported claim is reported as a hallucination *candidate*, never a verdict.
+
+**Tier 3 — benchmark and mitigation** (`gnnarrate.benchmark`,
+`gnnarrate.mitigation`). Score a corpus across models and prompt variants into
+CSV tables, and run the mitigation loop -- feed unsupported claims back to the
+model to revise, then measure the before/after drop in hallucinations.
+
+```bash
+python examples/run_benchmark.py --demo          # offline, no key
+python examples/run_benchmark.py \
+    --logs data/clarus_logs --associations data/kirc_open_targets.tsv \
+    --disease "clear cell renal carcinoma" --models claude-opus-4-8
+```
+
+The claim-extraction and counterfactual-direction checks are documented lexical
+heuristics, intended to be corroborated by a small expert validation rather than
+treated as ground truth.
 
 ## Relationship to CLARUS
 

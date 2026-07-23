@@ -4,6 +4,7 @@ from .benchmark import (
     BenchmarkResult,
     NarrativeRecord,
     generate_records,
+    llm_generator,
     run_benchmark,
     score_record,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "run_benchmark",
     "score_record",
     "generate_records",
+    "llm_generator",
     "BenchmarkResult",
     "NarrativeRecord",
     "mitigate",

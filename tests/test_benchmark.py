@@ -111,16 +111,19 @@ def test_aggregate_csv_written(tmp_path, log):
     assert {"model", "mean_top_k_recall", "total_hallucination_candidates"} <= set(rows[0])
 
 
-def test_generate_records_with_stub(log):
-    def stub(log, model, variant):
+def test_generate_records_with_stub():
+    # `logs` are raw text; generate_records parses each once for scoring.
+    def stub(log_text, model, variant):
+        assert "Dataset selected" in log_text   # receives raw log text, not a ParsedLog
         return f"{model}/{variant} narrative for a graph"
 
     records = generate_records(
-        [("p0", log)], stub, models=["a", "b"], prompt_variants=["x", "y"]
+        [("p0", SAMPLE)], stub, models=["a", "b"], prompt_variants=["x", "y"]
     )
-    assert len(records) == 4                    # 2 models x 2 variants
+    assert len(records) == 4                     # 2 models x 2 variants
     assert records[0].narrative == "a/x narrative for a graph"
     assert {r.model for r in records} == {"a", "b"}
+    assert records[0].log.dataset == "KIRC SubNet"   # parsed from the raw text
 
 
 def test_mean_ignores_none(log):
