@@ -2,6 +2,7 @@
 
 from .clarus_log import ParsedLog, parse_clarus_log
 from .faithfulness import FaithfulnessReport, score_faithfulness
+from .grounding import DiseaseAssociations, GroundingReport, score_grounding
 from .llm import DEFAULT_MODELS, explain_model_prediction
 from .prompts import DEFAULT_XAI_METHODS, generate_gnn_explanation_prompt
 from .server import llm_blueprint
@@ -16,6 +17,9 @@ __all__ = [
     "ParsedLog",
     "score_faithfulness",
     "FaithfulnessReport",
+    "score_grounding",
+    "GroundingReport",
+    "DiseaseAssociations",
     "DEFAULT_MODELS",
     "DEFAULT_XAI_METHODS",
 ]

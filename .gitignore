@@ -20,6 +20,9 @@ htmlcov/
 venv/
 env/
 
+# Cached knowledge-base downloads (fetched via gnnarrate.opentargets)
+data/
+
 # Editors / OS
 .idea/
 .vscode/

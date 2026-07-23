@@ -23,6 +23,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from ._textutil import mentions as _mentions, sentences as _sentences
 from .clarus_log import ParsedLog
 
 # All-uppercase alphanumeric tokens, length >= 3, starting with a letter.
@@ -100,15 +101,6 @@ class FaithfulnessReport:
             "num_unverified_entities": len(self.unverified_entities),
             "unverified_entities": self.unverified_entities,
         }
-
-
-def _mentions(entity: str, narrative: str) -> bool:
-    """Case-insensitive whole-token match (gene symbols carry digits, so \\b works)."""
-    return re.search(rf"\b{re.escape(entity)}\b", narrative, re.IGNORECASE) is not None
-
-
-def _sentences(text: str) -> list[str]:
-    return [s for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
 
 def score_faithfulness(
