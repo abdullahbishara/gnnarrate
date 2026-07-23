@@ -26,6 +26,7 @@ import sys
 from gnnarrate import DiseaseAssociations, NarrativeRecord, run_benchmark
 from gnnarrate.benchmark import generate_records, llm_generator
 from gnnarrate.clarus_log import parse_clarus_log
+from gnnarrate.config import load_env
 
 _SAMPLE = pathlib.Path(__file__).parent / "sample_clarus_log.txt"
 
@@ -106,6 +107,7 @@ def main() -> int:
     parser.add_argument("--top-k", type=int, default=3)
     parser.add_argument("--out", default="benchmark")
     args = parser.parse_args()
+    load_env()  # read .env so ANTHROPIC_API_KEY is available
 
     if args.demo:
         return _run_demo(args.top_k)

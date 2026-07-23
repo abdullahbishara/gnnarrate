@@ -9,6 +9,7 @@ import pathlib
 import sys
 
 from gnnarrate import explain_model_prediction, generate_gnn_explanation_prompt
+from gnnarrate.config import load_env
 
 
 def main() -> int:
@@ -24,6 +25,7 @@ def main() -> int:
         help="Print the prompt without calling the API (no key needed)",
     )
     args = parser.parse_args()
+    load_env()  # read .env so ANTHROPIC_API_KEY is available
 
     if not args.log.is_file():
         print(f"No such log file: {args.log}", file=sys.stderr)
