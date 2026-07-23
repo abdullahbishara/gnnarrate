@@ -24,7 +24,8 @@ def test_missing_key_raises_before_sdk_import(monkeypatch):
 
 class _FakeAnthropicMessage:
     def __init__(self, text):
-        self.content = [type("Block", (), {"text": text})()]
+        # Real Anthropic TextBlocks carry type == "text"; the parser selects those.
+        self.content = [type("Block", (), {"text": text, "type": "text"})()]
 
 
 class _FakeAnthropicClient:
@@ -48,6 +49,26 @@ def test_anthropic_branch_builds_message_and_parses_text(monkeypatch):
     assert call["model"] == "claude-opus-4-8"       # default Opus model
     assert call["max_tokens"] == 256                # Anthropic requires max_tokens
     assert call["messages"] == [{"role": "user", "content": "PROMPT"}]
+
+
+def test_anthropic_skips_non_text_blocks(monkeypatch):
+    # Regression: a thinking/other block may precede the text block; the parser
+    # must skip it rather than crash on content[0].text (the bug that skipped Sonnet).
+    class _Msg:
+        content = [
+            type("Think", (), {"type": "thinking", "thinking": "reasoning..."})(),
+            type("Block", (), {"type": "text", "text": "the answer"})(),
+        ]
+
+    class _Client:
+        def __init__(self):
+            self.messages = self
+
+        def create(self, **kwargs):
+            return _Msg()
+
+    monkeypatch.setattr(llm_module, "_build_client", lambda provider: _Client())
+    assert explain_model_prediction("PROMPT", provider="anthropic") == "the answer"
 
 
 class _FakeChatClient:

@@ -87,7 +87,12 @@ def explain_model_prediction(
         if temperature is not None:
             kwargs["temperature"] = temperature
         message = client.messages.create(**kwargs)
-        return message.content[0].text.strip()
+        # Select text blocks explicitly: some models may emit a non-text block
+        # (e.g. thinking) first, so content[0] is not reliably the text.
+        texts = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+        if not texts:
+            raise RuntimeError(f"no text block in response from {model}")
+        return "".join(texts).strip()
 
     kwargs = {"model": model, "messages": messages}
     if temperature is not None:
