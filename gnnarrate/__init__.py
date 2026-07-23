@@ -15,6 +15,12 @@ from .faithfulness import FaithfulnessReport, score_faithfulness
 from .grounding import DiseaseAssociations, GroundingReport, score_grounding
 from .llm import DEFAULT_MODELS, explain_model_prediction
 from .annotation import compute_agreement, export_claims_for_annotation, extract_claims
+from .judge import (
+    DirectionResult,
+    aggregate_direction,
+    llm_direction_judge,
+    score_direction,
+)
 from .mitigation import (
     MitigationResult,
     build_revision_prompt,
@@ -61,6 +67,10 @@ __all__ = [
     "extract_claims",
     "export_claims_for_annotation",
     "compute_agreement",
+    "score_direction",
+    "aggregate_direction",
+    "llm_direction_judge",
+    "DirectionResult",
     "DEFAULT_MODELS",
     "DEFAULT_XAI_METHODS",
 ]

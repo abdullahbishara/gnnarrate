@@ -83,7 +83,10 @@ class FaithfulnessReport:
     def direction_accuracy(self) -> float | None:
         """Of discussed edits, fraction whose flip/no-flip is stated correctly.
 
-        Heuristic (lexical). None when no edit's direction is determinable.
+        WARNING: crude lexical heuristic -- it cannot separate a real class flip
+        from a confidence change or a negated "did not flip", so its numbers are
+        unreliable. Use `gnnarrate.judge.score_direction` (LLM-as-judge) for the
+        real metric; keep this only as a cheap pre-filter.
         """
         judged = [e for e in self.edits if e.direction_consistent is not None]
         if not judged:

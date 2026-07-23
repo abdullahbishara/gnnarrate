@@ -27,3 +27,6 @@ data/
 .idea/
 .vscode/
 .DS_Store
+
+# Unpublished paper results -- keep local until submission
+RESULTS.md
