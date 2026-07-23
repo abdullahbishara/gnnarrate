@@ -41,7 +41,8 @@ def _build_client(provider: Provider):
     if provider == "anthropic":
         from anthropic import Anthropic
 
-        return Anthropic(api_key=api_key)
+        # Extra retries + a generous timeout ride through intermittent network blips.
+        return Anthropic(api_key=api_key, max_retries=5, timeout=60.0)
     if provider == "openai":
         from openai import OpenAI
 
@@ -56,7 +57,7 @@ def explain_model_prediction(
     prompt: str,
     provider: Provider = "anthropic",
     model: str | None = None,
-    temperature: float = 1.0,
+    temperature: float | None = None,
     max_tokens: int = 1024,
 ) -> str:
     """Send `prompt` to the configured LLM and return the explanation text.
@@ -65,7 +66,8 @@ def explain_model_prediction(
         prompt: Output of `generate_gnn_explanation_prompt` (or a revision prompt).
         provider: Which API to call. Default "anthropic" (Claude Opus 4.8).
         model: Model id. Defaults to the provider's entry in DEFAULT_MODELS.
-        temperature: Sampling temperature. Note Anthropic's valid range is 0..1.
+        temperature: Sampling temperature, sent only if not None. Claude Opus 4.8
+            deprecates it, so leave it None for Anthropic.
         max_tokens: Response cap (Anthropic requires it; ignored by the others here).
 
     Returns:
@@ -78,19 +80,17 @@ def explain_model_prediction(
 
     client = _build_client(provider)
     model = model or DEFAULT_MODELS[provider]
+    messages = [{"role": "user", "content": prompt}]
 
     if provider == "anthropic":
-        message = client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        kwargs = {"model": model, "max_tokens": max_tokens, "messages": messages}
+        if temperature is not None:
+            kwargs["temperature"] = temperature
+        message = client.messages.create(**kwargs)
         return message.content[0].text.strip()
 
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=temperature,
-    )
+    kwargs = {"model": model, "messages": messages}
+    if temperature is not None:
+        kwargs["temperature"] = temperature
+    completion = client.chat.completions.create(**kwargs)
     return completion.choices[0].message.content.strip()

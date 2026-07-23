@@ -118,8 +118,14 @@ def score_faithfulness(
     mentioned_top = [n for n in top_nodes if n in mentioned_known]
 
     # Fabrication signal: gene-like tokens that are neither known nodes nor acronyms.
+    # Exclude tokens that prefix a real gene (e.g. "MGAT" -> the MGAT family), which
+    # are references to the gene family, not invented genes.
     candidates = set(_CANDIDATE.findall(narrative))
-    unverified = sorted(candidates - vocab - _STOPWORDS)
+    unverified = sorted(
+        c
+        for c in candidates - vocab - _STOPWORDS
+        if not any(gene.startswith(c) for gene in vocab)
+    )
 
     sentences = _sentences(narrative)
     edits: list[EditFaithfulness] = []

@@ -103,7 +103,7 @@ def mitigate(
     return revised, measure_mitigation(before, after, revised)
 
 
-def llm_reviser(provider: str = "anthropic", model: str | None = None, temperature: float = 0.3):
+def llm_reviser(provider: str = "anthropic", model: str | None = None, temperature: float | None = None):
     """Build an LLM-backed reviser to pass into `mitigate` (needs an API key)."""
 
     def _revise(narrative, unsupported_genes, disease):

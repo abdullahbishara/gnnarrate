@@ -162,7 +162,7 @@ def generate_records(
     return records
 
 
-def llm_generator(provider: str = "anthropic", temperature: float = 1.0):
+def llm_generator(provider: str = "anthropic", temperature: float | None = None):
     """Build a generate_fn that turns a CLARUS log into a narrative via an LLM.
 
     `variant` selects a preset from PROMPT_VARIANTS (prompt-flag kwargs). `model`

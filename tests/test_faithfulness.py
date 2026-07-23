@@ -71,6 +71,12 @@ def test_method_acronyms_are_not_flagged_as_fabrication(log):
     assert r.unverified_entities == []                # GNN/LLM/IG are stopworded
 
 
+def test_gene_family_name_is_not_fabrication(log):
+    # "MGAT" prefixes MGAT3/MGAT4B/... -> a family reference, not an invented gene.
+    r = score_faithfulness(log, "The MGAT gene family drives N-glycan branching.", k=2)
+    assert r.unverified_entities == []
+
+
 def test_summary_is_serializable(log):
     s = score_faithfulness(log, FAITHFUL, k=2).summary()
     assert s["top_k_recall"] == 1.0
