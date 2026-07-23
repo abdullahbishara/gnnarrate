@@ -1,10 +1,12 @@
 """GNNarrate -- LLM-generated narratives for CLARUS graph neural network explanations."""
 
 from .benchmark import (
+    BatchMitigationResult,
     BenchmarkResult,
     NarrativeRecord,
     generate_records,
     llm_generator,
+    run_batch_mitigation,
     run_benchmark,
     score_record,
 )
@@ -36,10 +38,12 @@ __all__ = [
     "GroundingReport",
     "DiseaseAssociations",
     "run_benchmark",
+    "run_batch_mitigation",
     "score_record",
     "generate_records",
     "llm_generator",
     "BenchmarkResult",
+    "BatchMitigationResult",
     "NarrativeRecord",
     "mitigate",
     "measure_mitigation",

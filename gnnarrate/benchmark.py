@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from .clarus_log import ParsedLog, parse_clarus_log
 from .faithfulness import FaithfulnessReport, score_faithfulness
 from .grounding import DiseaseAssociations, GroundingReport, score_grounding
+from .mitigation import MitigationResult, mitigate
 
 # Prompt-flag presets a benchmark can vary the narrative over.
 PROMPT_VARIANTS: dict[str, dict] = {
@@ -179,3 +180,71 @@ def llm_generator(provider: str = "anthropic", temperature: float = 1.0):
         )
 
     return _generate
+
+
+@dataclass
+class BatchMitigationResult:
+    """Before/after mitigation outcomes across a corpus. The headline result."""
+
+    results: list  # list[tuple[NarrativeRecord, MitigationResult]]
+
+    def rows(self) -> list[dict]:
+        return [
+            {
+                "item_id": rec.item_id,
+                "model": rec.model,
+                "prompt_variant": rec.prompt_variant,
+                "hallucinations_before": mit.hallucinations_before,
+                "hallucinations_after": mit.hallucinations_after,
+                "reduction": mit.reduction,
+                "reduction_rate": mit.reduction_rate,
+            }
+            for rec, mit in self.results
+        ]
+
+    def aggregate(self) -> list[dict]:
+        """One summary row per (model, prompt_variant)."""
+        groups: dict[tuple[str, str], list[MitigationResult]] = {}
+        for rec, mit in self.results:
+            groups.setdefault((rec.model, rec.prompt_variant), []).append(mit)
+
+        summary = []
+        for (model, variant), mits in sorted(groups.items()):
+            before = sum(m.hallucinations_before for m in mits)
+            after = sum(m.hallucinations_after for m in mits)
+            # Corpus-level rate weights by count; mean rate averages per narrative.
+            overall = None if before == 0 else (before - after) / before
+            summary.append({
+                "model": model,
+                "prompt_variant": variant,
+                "n": len(mits),
+                "hallucinations_before": before,
+                "hallucinations_after": after,
+                "reduction": before - after,
+                "overall_reduction_rate": _round(overall),
+                "mean_reduction_rate": _round(
+                    _mean([m.reduction_rate for m in mits])
+                ),
+            })
+        return summary
+
+    def to_csv(self, path) -> None:
+        _write_csv(path, self.rows())
+
+    def aggregate_to_csv(self, path) -> None:
+        _write_csv(path, self.aggregate())
+
+
+def run_batch_mitigation(
+    records, associations: DiseaseAssociations, revise_fn
+) -> BatchMitigationResult:
+    """Run the mitigation loop over every record; aggregate the before/after drop.
+
+    `revise_fn(narrative, unsupported_genes, disease) -> str` -- a stub in tests,
+    `gnnarrate.mitigation.llm_reviser(...)` in production.
+    """
+    results = [
+        (record, mitigate(record.log, record.narrative, associations, revise_fn)[1])
+        for record in records
+    ]
+    return BatchMitigationResult(results)
