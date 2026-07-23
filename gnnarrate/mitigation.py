@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ._textutil import has_term, mentions, sentences
 from .clarus_log import ParsedLog
 from .grounding import DiseaseAssociations, GroundingReport, score_grounding
 
@@ -104,7 +105,13 @@ def mitigate(
 
 
 def llm_reviser(provider: str = "anthropic", model: str | None = None, temperature: float | None = None):
-    """Build an LLM-backed reviser to pass into `mitigate` (needs an API key)."""
+    """Build an LLM-backed reviser to pass into `mitigate` (needs an API key).
+
+    Neural self-revision: asks the model to drop its own unsupported claims. In
+    practice the model tends to *hedge* rather than remove, so the flagged claim
+    (gene co-occurring with a disease term) often survives -- contrast with
+    `symbolic_reviser`.
+    """
 
     def _revise(narrative, unsupported_genes, disease):
         from .llm import explain_model_prediction
@@ -113,5 +120,26 @@ def llm_reviser(provider: str = "anthropic", model: str | None = None, temperatu
         return explain_model_prediction(
             prompt, provider=provider, model=model, temperature=temperature
         )
+
+    return _revise
+
+
+def symbolic_reviser(disease_terms):
+    """Deterministically delete sentences that assert an unsupported gene-disease link.
+
+    The symbolic guardrail. It removes exactly the sentences the grounding scorer
+    flags -- an unsupported gene co-occurring with a disease term -- and keeps every
+    other sentence, including supported claims and structural (attribution) mentions.
+    Needs no API key, and by construction leaves zero flagged claims behind.
+    """
+    terms = list(disease_terms)
+
+    def _revise(narrative, unsupported_genes, disease):
+        kept = [
+            s
+            for s in sentences(narrative)
+            if not (has_term(s, terms) and any(mentions(g, s) for g in unsupported_genes))
+        ]
+        return " ".join(kept)
 
     return _revise

@@ -90,3 +90,30 @@ def test_summary_shape(log):
     assert s["hallucinations_before"] == 1
     assert s["hallucinations_after"] == 0
     assert s["reduction_rate"] == 1.0
+
+
+def test_symbolic_reviser_removes_only_the_flagged_claim(log):
+    from gnnarrate.mitigation import symbolic_reviser
+
+    reviser = symbolic_reviser(["kidney", "renal", "carcinoma", "cancer"])
+    revised, result = mitigate(log, UNSUPPORTED, ASSOC, reviser)
+
+    assert result.hallucinations_before == 1        # MGAT5 disease claim flagged
+    assert result.hallucinations_after == 0         # its sentence removed
+    assert result.reduction_rate == 1.0
+    assert "MGAT5" not in revised                    # unsupported claim gone
+    assert "MGAT3" in revised                        # supported / attribution content kept
+
+
+def test_symbolic_reviser_keeps_gene_mentioned_without_disease(log):
+    from gnnarrate.mitigation import symbolic_reviser
+
+    # MGAT5 appears in an attribution sentence (no disease term) -> must survive,
+    # since it isn't a disease claim.
+    narrative = "MGAT5 had the second-highest relevance. MGAT5 causes kidney cancer."
+    reviser = symbolic_reviser(["kidney", "cancer"])
+    revised, result = mitigate(log, narrative, ASSOC, reviser)
+
+    assert result.hallucinations_after == 0
+    assert "second-highest relevance" in revised     # neutral mention preserved
+    assert "causes kidney cancer" not in revised      # only the claim removed
