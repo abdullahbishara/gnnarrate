@@ -11,6 +11,7 @@ LLM-backed reviser (see `llm_reviser`). The measurement itself is pure and offli
 
 from __future__ import annotations
 
+import re as _re
 from dataclasses import dataclass
 
 from ._textutil import has_term, mentions, sentences
@@ -100,7 +101,15 @@ def mitigate(
         return narrative, measure_mitigation(before, before, narrative)
 
     revised = revise_fn(narrative, before.unsupported, associations.disease)
-    after = score_grounding(log, revised, associations)
+    if not revised or not revised.strip():
+        # Revision removed everything -> no claims remain, so no hallucinations.
+        after = GroundingReport(
+            disease=associations.disease,
+            claimed_genes=[], supported=[], unsupported=[],
+            associations_available=bool(associations.scores),
+        )
+    else:
+        after = score_grounding(log, revised, associations)
     return revised, measure_mitigation(before, after, revised)
 
 
@@ -131,6 +140,9 @@ def symbolic_reviser(disease_terms):
     flags -- an unsupported gene co-occurring with a disease term -- and keeps every
     other sentence, including supported claims and structural (attribution) mentions.
     Needs no API key, and by construction leaves zero flagged claims behind.
+
+    Cost: when a sentence bundles supported and unsupported genes, the whole sentence
+    goes, taking the supported claims with it. `claim_level_reviser` mitigates that.
     """
     terms = list(disease_terms)
 
@@ -141,5 +153,47 @@ def symbolic_reviser(disease_terms):
             if not (has_term(s, terms) and any(mentions(g, s) for g in unsupported_genes))
         ]
         return " ".join(kept)
+
+    return _revise
+
+
+def _strip_gene_from_list(sentence: str, gene: str) -> str | None:
+    """Remove `gene` from a comma/and list in `sentence`; None if not cleanly removable."""
+    g = _re.escape(gene)
+    for pattern in (rf",\s*{g}\b", rf"\b{g}\s*,", rf"\s+and\s+{g}\b", rf"\b{g}\s+and\s+"):
+        new = _re.sub(pattern, "", sentence, count=1, flags=_re.IGNORECASE)
+        if new != sentence:
+            return new
+    return None
+
+
+def claim_level_reviser(disease_terms):
+    """Remove only the unsupported gene from a flagged sentence, keeping supported ones.
+
+    When an unsupported gene sits in a list ("A, B, and C are implicated..."), strip
+    just that gene rather than deleting the whole sentence -- preserving the supported
+    claims bundled alongside it. Falls back to dropping the sentence when the gene
+    can't be cleanly excised.
+    """
+    terms = list(disease_terms)
+
+    def _revise(narrative, unsupported_genes, disease):
+        out = []
+        for s in sentences(narrative):
+            if not (has_term(s, terms) and any(mentions(g, s) for g in unsupported_genes)):
+                out.append(s)
+                continue
+            revised, ok = s, True
+            for g in unsupported_genes:
+                if mentions(g, revised):
+                    stripped = _strip_gene_from_list(revised, g)
+                    if stripped is None:
+                        ok = False
+                        break
+                    revised = stripped
+            # Keep only if every unsupported gene was excised; else drop the sentence.
+            if ok and not any(mentions(g, revised) for g in unsupported_genes):
+                out.append(revised)
+        return " ".join(out)
 
     return _revise

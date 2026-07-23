@@ -14,13 +14,17 @@ from .clarus_log import ParsedLog, parse_clarus_log
 from .faithfulness import FaithfulnessReport, score_faithfulness
 from .grounding import DiseaseAssociations, GroundingReport, score_grounding
 from .llm import DEFAULT_MODELS, explain_model_prediction
+from .annotation import compute_agreement, export_claims_for_annotation, extract_claims
 from .mitigation import (
     MitigationResult,
     build_revision_prompt,
+    claim_level_reviser,
     llm_reviser,
     measure_mitigation,
     mitigate,
+    symbolic_reviser,
 )
+from .stats import format_ci, mean_ci
 from .prompts import DEFAULT_XAI_METHODS, generate_gnn_explanation_prompt
 from .server import llm_blueprint
 
@@ -49,7 +53,14 @@ __all__ = [
     "measure_mitigation",
     "build_revision_prompt",
     "llm_reviser",
+    "symbolic_reviser",
+    "claim_level_reviser",
     "MitigationResult",
+    "mean_ci",
+    "format_ci",
+    "extract_claims",
+    "export_claims_for_annotation",
+    "compute_agreement",
     "DEFAULT_MODELS",
     "DEFAULT_XAI_METHODS",
 ]

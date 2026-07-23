@@ -105,6 +105,31 @@ def test_symbolic_reviser_removes_only_the_flagged_claim(log):
     assert "MGAT3" in revised                        # supported / attribution content kept
 
 
+def test_claim_level_reviser_keeps_supported_gene_in_list(log):
+    from gnnarrate.mitigation import claim_level_reviser
+
+    # MGAT3 (supported) and MGAT5 (unsupported) share one claim sentence.
+    narrative = "MGAT3 and MGAT5 are implicated in kidney cancer."
+    reviser = claim_level_reviser(["kidney", "cancer"])
+    revised, result = mitigate(log, narrative, ASSOC, reviser)
+
+    assert result.hallucinations_after == 0
+    assert "MGAT3" in revised        # supported claim kept (sentence-level would lose it)
+    assert "MGAT5" not in revised     # unsupported gene stripped from the list
+
+
+def test_claim_level_reviser_falls_back_to_sentence_removal(log):
+    from gnnarrate.mitigation import claim_level_reviser
+
+    # MGAT5 is not in a list, so it can't be cleanly excised -> drop the sentence.
+    narrative = "MGAT5 is a known driver of kidney cancer."
+    reviser = claim_level_reviser(["kidney", "cancer"])
+    revised, result = mitigate(log, narrative, ASSOC, reviser)
+
+    assert result.hallucinations_after == 0
+    assert "MGAT5" not in revised
+
+
 def test_symbolic_reviser_keeps_gene_mentioned_without_disease(log):
     from gnnarrate.mitigation import symbolic_reviser
 
