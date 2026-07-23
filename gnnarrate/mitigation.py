@@ -1,0 +1,117 @@
+"""Mitigation loop: constrain a narrative to knowledge-base-supported claims.
+
+The neuro-symbolic step. Grounding (Tier 2) flags gene-disease claims the knowledge
+base does not support; this module feeds those back to revise the narrative, then
+re-scores it to measure how much the hallucination count dropped -- the before/after
+delta that is the paper's headline result.
+
+The reviser is injected: tests pass a deterministic stub, production passes an
+LLM-backed reviser (see `llm_reviser`). The measurement itself is pure and offline.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .clarus_log import ParsedLog
+from .grounding import DiseaseAssociations, GroundingReport, score_grounding
+
+
+@dataclass
+class MitigationResult:
+    before: GroundingReport
+    after: GroundingReport
+    revised_narrative: str
+
+    @property
+    def hallucinations_before(self) -> int:
+        return len(self.before.unsupported)
+
+    @property
+    def hallucinations_after(self) -> int:
+        return len(self.after.unsupported)
+
+    @property
+    def reduction(self) -> int:
+        """Net drop in unsupported claims (negative if revision made it worse)."""
+        return self.hallucinations_before - self.hallucinations_after
+
+    @property
+    def reduction_rate(self) -> float | None:
+        """Fraction of hallucinations removed; None when there were none to remove."""
+        if self.hallucinations_before == 0:
+            return None
+        return self.reduction / self.hallucinations_before
+
+    def summary(self) -> dict:
+        return {
+            "disease": self.before.disease,
+            "hallucinations_before": self.hallucinations_before,
+            "hallucinations_after": self.hallucinations_after,
+            "reduction": self.reduction,
+            "reduction_rate": (
+                None if self.reduction_rate is None
+                else round(self.reduction_rate, 3)
+            ),
+        }
+
+
+def measure_mitigation(
+    before: GroundingReport, after: GroundingReport, revised_narrative: str = ""
+) -> MitigationResult:
+    return MitigationResult(before=before, after=after, revised_narrative=revised_narrative)
+
+
+def build_revision_prompt(
+    narrative: str, unsupported_genes, disease: str
+) -> str:
+    """Prompt asking the model to drop/qualify unsupported gene-disease claims."""
+    genes = ", ".join(unsupported_genes)
+    return f"""You previously wrote this explanation of a graph neural network's prediction:
+
+\"\"\"
+{narrative.strip()}
+\"\"\"
+
+A knowledge-base check found NO evidence that the following genes are associated
+with {disease}: {genes}.
+
+Revise the explanation so it no longer asserts that these genes are linked to
+{disease}. You may remove those claims or restate them as unverified. Keep every
+other statement -- especially every description of the model's behavior --
+unchanged. Return only the revised explanation.
+"""
+
+
+def mitigate(
+    log: ParsedLog,
+    narrative: str,
+    associations: DiseaseAssociations,
+    revise_fn,
+) -> tuple[str, MitigationResult]:
+    """Ground the narrative; if it has unsupported claims, revise and re-score.
+
+    `revise_fn(narrative, unsupported_genes, disease) -> str`. Returns the (possibly
+    unchanged) narrative and the before/after measurement.
+    """
+    before = score_grounding(log, narrative, associations)
+    if not before.unsupported:
+        return narrative, measure_mitigation(before, before, narrative)
+
+    revised = revise_fn(narrative, before.unsupported, associations.disease)
+    after = score_grounding(log, revised, associations)
+    return revised, measure_mitigation(before, after, revised)
+
+
+def llm_reviser(provider: str = "openai", model: str | None = None, temperature: float = 0.3):
+    """Build an LLM-backed reviser to pass into `mitigate` (needs an API key)."""
+
+    def _revise(narrative, unsupported_genes, disease):
+        from .llm import explain_model_prediction
+
+        prompt = build_revision_prompt(narrative, unsupported_genes, disease)
+        return explain_model_prediction(
+            prompt, provider=provider, model=model, temperature=temperature
+        )
+
+    return _revise

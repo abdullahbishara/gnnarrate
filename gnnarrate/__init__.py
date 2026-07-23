@@ -1,9 +1,23 @@
 """GNNarrate -- LLM-generated narratives for CLARUS graph neural network explanations."""
 
+from .benchmark import (
+    BenchmarkResult,
+    NarrativeRecord,
+    generate_records,
+    run_benchmark,
+    score_record,
+)
 from .clarus_log import ParsedLog, parse_clarus_log
 from .faithfulness import FaithfulnessReport, score_faithfulness
 from .grounding import DiseaseAssociations, GroundingReport, score_grounding
 from .llm import DEFAULT_MODELS, explain_model_prediction
+from .mitigation import (
+    MitigationResult,
+    build_revision_prompt,
+    llm_reviser,
+    measure_mitigation,
+    mitigate,
+)
 from .prompts import DEFAULT_XAI_METHODS, generate_gnn_explanation_prompt
 from .server import llm_blueprint
 
@@ -20,6 +34,16 @@ __all__ = [
     "score_grounding",
     "GroundingReport",
     "DiseaseAssociations",
+    "run_benchmark",
+    "score_record",
+    "generate_records",
+    "BenchmarkResult",
+    "NarrativeRecord",
+    "mitigate",
+    "measure_mitigation",
+    "build_revision_prompt",
+    "llm_reviser",
+    "MitigationResult",
     "DEFAULT_MODELS",
     "DEFAULT_XAI_METHODS",
 ]
