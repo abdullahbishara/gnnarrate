@@ -104,8 +104,13 @@ def explain_model_prediction(
             raise RuntimeError(f"no text block in response from {model}")
         return "".join(texts).strip()
 
-    kwargs = {"model": model, "messages": messages}
+    # Pass max_tokens explicitly here too: some OpenAI-compatible backends default
+    # to a small cap, which silently truncates narratives and biases the scores.
+    kwargs = {"model": model, "messages": messages, "max_tokens": max_tokens}
     if temperature is not None:
         kwargs["temperature"] = temperature
     completion = client.chat.completions.create(**kwargs)
-    return completion.choices[0].message.content.strip()
+    content = completion.choices[0].message.content
+    if not content:
+        raise RuntimeError(f"empty response from {model}")
+    return content.strip()

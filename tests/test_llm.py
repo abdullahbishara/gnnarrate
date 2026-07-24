@@ -74,14 +74,16 @@ def test_anthropic_skips_non_text_blocks(monkeypatch):
 class _FakeChatClient:
     """Mimics the OpenAI/Groq chat.completions shape."""
 
-    def __init__(self):
+    def __init__(self, content=" openai text "):
         choice = type("Choice", (), {
-            "message": type("Msg", (), {"content": " openai text "})()
+            "message": type("Msg", (), {"content": content})()
         })()
         self._resp = type("Resp", (), {"choices": [choice]})()
         self.chat = type("Chat", (), {"completions": self})()
+        self.calls = []
 
     def create(self, **kwargs):
+        self.calls.append(kwargs)
         return self._resp
 
 
@@ -105,3 +107,20 @@ def test_openrouter_missing_key_raises(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY is not set"):
         explain_model_prediction("hi", provider="openrouter")
+
+
+def test_chat_path_sends_max_tokens(monkeypatch):
+    # Regression: without an explicit cap some backends truncate the narrative,
+    # which silently biases every downstream score (the Opus-at-1024 bug).
+    fake = _FakeChatClient()
+    monkeypatch.setattr(llm_module, "_build_client", lambda provider: fake)
+    explain_model_prediction("PROMPT", provider="openrouter", max_tokens=4096)
+    assert fake.calls[0]["max_tokens"] == 4096
+
+
+def test_chat_path_rejects_empty_response(monkeypatch):
+    monkeypatch.setattr(
+        llm_module, "_build_client", lambda provider: _FakeChatClient(content=None)
+    )
+    with pytest.raises(RuntimeError, match="empty response"):
+        explain_model_prediction("PROMPT", provider="openrouter")
