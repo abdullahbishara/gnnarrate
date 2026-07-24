@@ -36,6 +36,11 @@ TEMPLATE = """<!doctype html>
           opacity: .7; margin: .5rem 0 1.5rem; }}
  .card {{ border: 1px solid #8884; border-radius: 10px; padding: 1.25rem 1.5rem;
           margin-bottom: 1.25rem; }}
+ .look {{ display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem;
+          padding-top: 1rem; border-top: 1px dashed #8884; }}
+ .look a {{ font-size: .85rem; padding: .35rem .7rem; border: 1px solid #8886;
+            border-radius: 6px; text-decoration: none; }}
+ .look a:hover {{ background: #8882; }}
  .gene {{ font-weight: 700; font-size: 1.15rem; letter-spacing: .02em; }}
  .q {{ margin: .75rem 0 0; }}
  blockquote {{ margin: 1rem 0 0; padding-left: 1rem; border-left: 3px solid #8886;
@@ -56,8 +61,16 @@ TEMPLATE = """<!doctype html>
 <div class="meta"><span id="count"></span><span id="saved"></span></div>
 <div id="app"></div>
 <p class="sec">
- <kbd>1</kbd> supported &nbsp; <kbd>2</kbd> not supported &nbsp; <kbd>3</kbd> unsure
- &nbsp; <kbd>&larr;</kbd> back<br>
+ <b>Protocol.</b> For each gene, follow the PubMed link and scan the titles. Judge
+ <i>Evidence found</i> if there is published work reporting a role for this gene in
+ this cancer (or a directly relevant pathway); <i>No clear evidence</i> if the search
+ returns nothing relevant; <i>Unsure</i> if it is genuinely ambiguous. Spend about a
+ minute per claim &mdash; a quick, consistent judgement is more useful than a slow,
+ variable one. Judge independently: do not confer with the other annotator.
+</p>
+<p class="sec">
+ <kbd>1</kbd> evidence found &nbsp; <kbd>2</kbd> no clear evidence &nbsp;
+ <kbd>3</kbd> unsure &nbsp; <kbd>&larr;</kbd> back<br>
  Progress saves automatically in this browser. Click <b>Download</b> when finished
  (or to hand over partway).
 </p>
@@ -89,14 +102,23 @@ function render() {{
   const c = CLAIMS[i];
   const sent = esc(c.sentence).replace(new RegExp("\\\\b" + c.gene + "\\\\b", "g"),
                                        "<mark>" + c.gene + "</mark>");
+  const pm = "https://pubmed.ncbi.nlm.nih.gov/?term=" +
+             encodeURIComponent(c.gene + ' AND ({disease_query})');
+  const gc = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=" +
+             encodeURIComponent(c.gene);
   app.innerHTML =
     '<div class="card"><div class="gene">' + c.gene + '</div>' +
-    '<p class="q">Is <b>' + c.gene + '</b> an established gene&ndash;disease association for <b>' +
-    {disease_json} + '</b>, to the best of your knowledge?</p>' +
-    '<blockquote>&hellip;' + sent + '&hellip;</blockquote></div>' +
+    '<p class="q">Is there <b>published evidence</b> linking <b>' + c.gene +
+    '</b> to <b>' + {disease_json} + '</b>?</p>' +
+    '<blockquote>&hellip;' + sent + '&hellip;</blockquote>' +
+    '<div class="look"><span style="font-size:.85rem;opacity:.7;align-self:center">' +
+    'Check:</span>' +
+    '<a href="' + pm + '" target="_blank" rel="noopener">PubMed &nearr;</a>' +
+    '<a href="' + gc + '" target="_blank" rel="noopener">GeneCards &nearr;</a></div>' +
+    '</div>' +
     '<div class="btns">' +
-    '<button onclick="ans(\\'supported\\')">1 &mdash; Supported</button>' +
-    '<button onclick="ans(\\'unsupported\\')">2 &mdash; Not supported</button>' +
+    '<button onclick="ans(\\'supported\\')">1 &mdash; Evidence found</button>' +
+    '<button onclick="ans(\\'unsupported\\')">2 &mdash; No clear evidence</button>' +
     '<button onclick="ans(\\'unsure\\')">3 &mdash; Unsure</button>' +
     '<button onclick="back()" style="margin-left:auto">&larr; Back</button></div>';
 }}
@@ -142,6 +164,8 @@ def main() -> int:
     ap.add_argument("--claims", default="data/results_kirc/claims_for_expert.csv")
     ap.add_argument("--annotator", required=True, help="short name, e.g. abdullah")
     ap.add_argument("--disease", default="clear cell renal carcinoma")
+    ap.add_argument("--disease-query", default="renal cell carcinoma OR kidney cancer",
+                    help="PubMed query fragment for the disease")
     ap.add_argument("--outdir", default="data/annotation")
     args = ap.parse_args()
 
@@ -165,6 +189,7 @@ def main() -> int:
         annotator_json=json.dumps(args.annotator),
         disease=args.disease,
         disease_json=json.dumps(args.disease),
+        disease_query=args.disease_query,
         claims=json.dumps(blind),
     )
     path = out / f"annotate_{args.annotator}.html"
