@@ -43,8 +43,12 @@ MODELS = {
     "deepseek":   ("openrouter", "deepseek/deepseek-chat",              "default"),
     "qwen":       ("openrouter", "qwen/qwen-2.5-72b-instruct",          "default"),
     "llama":      ("openrouter", "meta-llama/llama-3.3-70b-instruct",   "default"),
+    # Newest frontier model at time of submission, so the result is not tied to one
+    # model generation.
+    "opus5":      ("anthropic",  "claude-opus-5",                       "default"),
     # Ablation: same model, biomedical context switched off.
     "opus_nobio": ("anthropic",  "claude-opus-4-8",                     "no_biomedical"),
+    "opus5_nobio":("anthropic",  "claude-opus-5",                       "no_biomedical"),
 }
 
 # Directory names already written by earlier runs, so those narratives are reused.
