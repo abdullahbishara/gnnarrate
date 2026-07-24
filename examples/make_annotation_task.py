@@ -69,8 +69,14 @@ TEMPLATE = """<!doctype html>
  variable one. Judge independently: do not confer with the other annotator.
 </p>
 <p class="sec">
+ Press <kbd>4</kbd> if the sentence is not actually asserting a link between
+ <i>this gene</i> and the disease &mdash; for example if the gene is only named in
+ passing, or the sentence explicitly denies a link. That tells us our automatic
+ extractor mis-read the sentence, which we measure separately.
+</p>
+<p class="sec">
  <kbd>1</kbd> evidence found &nbsp; <kbd>2</kbd> no clear evidence &nbsp;
- <kbd>3</kbd> unsure &nbsp; <kbd>&larr;</kbd> back<br>
+ <kbd>3</kbd> unsure &nbsp; <kbd>4</kbd> not a claim &nbsp; <kbd>&larr;</kbd> back<br>
  Progress saves automatically in this browser. Click <b>Download</b> when finished
  (or to hand over partway).
 </p>
@@ -120,6 +126,8 @@ function render() {{
     '<button onclick="ans(\\'supported\\')">1 &mdash; Evidence found</button>' +
     '<button onclick="ans(\\'unsupported\\')">2 &mdash; No clear evidence</button>' +
     '<button onclick="ans(\\'unsure\\')">3 &mdash; Unsure</button>' +
+    '<button onclick="ans(\\'misextracted\\')" style="opacity:.75">' +
+    '4 &mdash; Not a claim about this gene</button>' +
     '<button onclick="back()" style="margin-left:auto">&larr; Back</button></div>';
 }}
 function ans(v) {{
@@ -141,6 +149,7 @@ addEventListener("keydown", e => {{
   if (e.key === "1") ans("supported");
   else if (e.key === "2") ans("unsupported");
   else if (e.key === "3") ans("unsure");
+  else if (e.key === "4") ans("misextracted");
   else if (e.key === "ArrowLeft") back();
 }});
 render();

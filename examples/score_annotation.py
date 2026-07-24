@@ -53,6 +53,19 @@ def main() -> int:
 
     print(f"disease claims in key: {len(key)}\n")
 
+    # --- 0. extraction precision (limitation 5) ---
+    # A claim marked "misextracted" is one the lexical extractor wrongly treated as a
+    # gene-disease assertion. The share that are NOT so marked is its precision.
+    print("=== Claim-extraction precision (validates the extractor) ===")
+    for name, ans in loaded.items():
+        judged = [v for v in ans.values() if v != "unsure"]
+        if not judged:
+            continue
+        bad = sum(1 for v in judged if v == "misextracted")
+        print(f"  {name:<12} n={len(judged):<4} "
+              f"correctly extracted={1 - bad/len(judged):.3f}  ({bad} mis-extracted)")
+    print()
+
     # --- 1. each expert vs the knowledge base ---
     print("=== Expert vs. knowledge base (validates the proxy) ===")
     per_expert = {}
@@ -61,7 +74,9 @@ def main() -> int:
         for cid, label in ans.items():
             if cid not in key:
                 continue
-            if args.drop_unsure and label == "unsure":
+            # "unsure" carries no judgement; "misextracted" means there was no claim to
+            # judge, so neither belongs in the knowledge-base comparison.
+            if label in ("unsure", "misextracted"):
                 continue
             rows.append({"auto_label": key[cid]["auto_label"], "expert_label": label})
         res = compute_agreement(rows)
@@ -79,9 +94,9 @@ def main() -> int:
         names = list(loaded)
         a_name, b_name = names[0], names[1]
         shared = [c for c in loaded[a_name] if c in loaded[b_name] and c in key]
-        if args.drop_unsure:
-            shared = [c for c in shared
-                      if loaded[a_name][c] != "unsure" and loaded[b_name][c] != "unsure"]
+        skip = ("unsure", "misextracted")
+        shared = [c for c in shared
+                  if loaded[a_name][c] not in skip and loaded[b_name][c] not in skip]
         a = [loaded[a_name][c] for c in shared]
         b = [loaded[b_name][c] for c in shared]
         if shared:
