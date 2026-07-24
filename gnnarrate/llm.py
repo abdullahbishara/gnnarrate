@@ -1,7 +1,10 @@
 """Provider-agnostic LLM client for generating and revising explanations.
 
-Supports Anthropic (default: Claude Opus 4.8), OpenAI, and Groq. Keys are read
-from the environment -- never pass them as literals, and never commit them.
+Supports Anthropic (default: Claude Opus 4.8), OpenAI, Groq, and OpenRouter. The
+last is OpenAI-compatible and is the cheap path to open models -- DeepSeek, Kimi
+K2, GLM-4.6, Qwen, Llama -- through one OPENROUTER_API_KEY (e.g. pass
+model="moonshotai/kimi-k2" or "z-ai/glm-4.6"). Keys are read from the environment
+-- never pass them as literals, and never commit them.
 """
 
 from __future__ import annotations
@@ -9,18 +12,20 @@ from __future__ import annotations
 import os
 from typing import Literal
 
-Provider = Literal["anthropic", "openai", "groq"]
+Provider = Literal["anthropic", "openai", "groq", "openrouter"]
 
 DEFAULT_MODELS: dict[Provider, str] = {
     "anthropic": "claude-opus-4-8",
     "openai": "gpt-4o",
-    "groq": "llama3-70b-8192",
+    "groq": "llama-3.3-70b-versatile",
+    "openrouter": "deepseek/deepseek-chat",
 }
 
 _ENV_VARS: dict[Provider, str] = {
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
     "groq": "GROQ_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
 }
 
 
@@ -47,6 +52,11 @@ def _build_client(provider: Provider):
         from openai import OpenAI
 
         return OpenAI(api_key=api_key)
+    if provider == "openrouter":
+        from openai import OpenAI
+
+        # OpenRouter speaks the OpenAI API; only the base URL differs.
+        return OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
     from groq import Groq
 

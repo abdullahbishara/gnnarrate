@@ -8,7 +8,7 @@ from gnnarrate.llm import DEFAULT_MODELS, explain_model_prediction
 
 def test_default_provider_is_opus():
     assert DEFAULT_MODELS["anthropic"] == "claude-opus-4-8"
-    assert set(DEFAULT_MODELS) == {"anthropic", "openai", "groq"}
+    assert set(DEFAULT_MODELS) == {"anthropic", "openai", "groq", "openrouter"}
 
 
 def test_unknown_provider_rejected():
@@ -89,3 +89,19 @@ def test_openai_branch_uses_chat_completions(monkeypatch):
     monkeypatch.setattr(llm_module, "_build_client", lambda provider: _FakeChatClient())
     out = explain_model_prediction("PROMPT", provider="openai")
     assert out == "openai text"
+
+
+def test_openrouter_uses_chat_completions_and_named_model(monkeypatch):
+    # OpenRouter is the cheap path to open models (Kimi, GLM, DeepSeek, Qwen).
+    fake = _FakeChatClient()
+    monkeypatch.setattr(llm_module, "_build_client", lambda provider: fake)
+    out = explain_model_prediction(
+        "PROMPT", provider="openrouter", model="moonshotai/kimi-k2"
+    )
+    assert out == "openai text"
+
+
+def test_openrouter_missing_key_raises(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY is not set"):
+        explain_model_prediction("hi", provider="openrouter")
