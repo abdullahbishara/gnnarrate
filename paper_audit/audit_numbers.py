@@ -195,6 +195,53 @@ check("census pathway pct", find(r"mechanistic roles \((\d+\.\d+)\\% of the"),
 check("census offgraph pct", find(r"off-graph genes \((\d+\.\d+)\\%\)"),
       100 * kinds["offgraph_gene"] / tot_unchecked, 0.06)
 
+# ---------- cohort composition, recomputed from the TCGA barcodes ----------
+_bc = DATA / "kirc_barcodes.tsv"
+if _bc.exists():
+    _KIRC_TSS = {"3Z", "6D", "A3", "AK", "AS", "B0", "B2", "B4", "B8", "BP", "CB",
+                 "CJ", "CW", "CZ", "DV", "DW", "EU", "GK", "MM", "MW", "T7", "G6"}
+    _BRCA_TSS = {"A1", "A2", "A7", "A8", "AC", "AN", "AO", "AQ", "AR", "B6", "BH",
+                 "C8", "D8", "E2", "E9", "EW", "GI", "GM", "HN", "LL", "LQ", "OL",
+                 "PE", "S3", "UU", "V7", "W8", "WT", "XX", "Z7", "JL", "AZ", "OK", "EK"}
+    _rows = [l.split("\t") for l in
+             _bc.read_text(encoding="utf-8").strip().split("\n")[1:]]
+    _tum = sum(1 for b, l in _rows if l == "1")
+    _ctrl = [b for b, l in _rows if l == "0"]
+    _second = sum(1 for b in _ctrl if len(b) == 13)
+    _brca = sum(1 for b in _ctrl if len(b) == 12 and b.split("-")[1] in _BRCA_TSS)
+    _luad = len(_ctrl) - _second - _brca
+    check("cohort: total samples",
+          find(r"of its (\d+) samples", int), len(_rows), 0)
+    check("cohort: KIRC tumours",
+          find(r"samples, (\d+) are KIRC tumours", int), _tum, 0)
+    check("cohort: controls",
+          find(r"and the (\d+) controls", int), len(_ctrl), 0)
+    check("cohort: second samples",
+          find(r"comprise (\d+) second samples", int), _second, 0)
+    check("cohort: breast",
+          find(r"with (\d+) breast", int), _brca, 0)
+    check("cohort: lung",
+          find(r"and (\d+) lung\s*\n?cancer cases", int), _luad, 0)
+
+# ---------- cohort purity: the renal-subset robustness check ----------
+_cp = RES / "cohort_purity.json"
+if _cp.exists():
+    cp = json.loads(_cp.read_text(encoding="utf-8"))
+    n_all = len(cp)
+    mean_all = sum(r["grounding_all"] for r in cp) / n_all
+    mean_kid = sum(r["grounding_kidney"] for r in cp) / n_all
+    check("purity: mean all", find(r"is\n?(\d\.\d+) on the full corpus"), mean_all, 0.0006)
+    check("purity: mean renal",
+          find(r"and (\d\.\d+) on the renal subset"), mean_kid, 0.0006)
+    check("purity: renal n",
+          find(r"renal subset alone: (\d+) of the 127", int),
+          max(r["n_kidney"] for r in cp), 0)
+    deltas = [r["delta"] for r in cp]
+    check("purity: min delta",
+          find(r"between \$-(\d\.\d+)\$", lambda s: -float(s)), min(deltas), 0.0006)
+    check("purity: max delta",
+          find(r"and\n?\$\+(\d\.\d+)\$", float), max(deltas), 0.0006)
+
 # ---------- architecture table: the paper's strongest claim ----------
 # This table went unverified while every weaker table was checked, and a cell
 # had drifted from the data. Check every cell, and the derived spread with it.
