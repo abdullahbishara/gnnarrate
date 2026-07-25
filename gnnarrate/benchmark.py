@@ -24,6 +24,9 @@ PROMPT_VARIANTS: dict[str, dict] = {
     "default": {},
     "verbose": {"verbose": True},
     "no_biomedical": {"biomedical_context": False},
+    # A tighter length budget, to test whether claim volume -- and so hallucination
+    # exposure -- is governed by the template rather than by the model's knowledge.
+    "terse": {"max_sentences": 3},
 }
 
 

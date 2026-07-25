@@ -49,6 +49,9 @@ MODELS = {
     # Ablation: same model, biomedical context switched off.
     "opus_nobio": ("anthropic",  "claude-opus-4-8",                     "no_biomedical"),
     "opus5_nobio":("anthropic",  "claude-opus-5",                       "no_biomedical"),
+    # Template variant: same model and flags, tighter length budget.
+    "opus_terse": ("anthropic",  "claude-opus-4-8",                     "terse"),
+    "kimi_terse": ("openrouter", "moonshotai/kimi-k2",                  "terse"),
 }
 
 # Directory names already written by earlier runs, so those narratives are reused.
