@@ -22,11 +22,14 @@ import matplotlib.pyplot as plt  # noqa: E402
 SRC = pathlib.Path("data/results_comparison/per_model.csv")
 OUT = pathlib.Path("../gnnarrate-paper/submission/figures")
 
+# Names must match Table II of the manuscript exactly, so a reader moving between
+# the figure and the table sees the same label for the same configuration.
 LABEL = {
-    "opus_default": "Claude Opus 4.8",
+    "opus_default": "Opus 4.8",
+    "opus5": "Opus 5",
     "opus_nobio": "Opus 4.8 (no bio. prompt)",
-    "sonnet_default": "Claude Sonnet 5",
-    "haiku_default": "Claude Haiku 4.5",
+    "sonnet_default": "Sonnet 5",
+    "haiku_default": "Haiku 4.5",
     "kimi": "Kimi K2",
     "glm": "GLM-4.6",
     "deepseek": "DeepSeek-V3",
@@ -36,12 +39,19 @@ LABEL = {
 # Label offsets (pts) for the scatter, hand-set to stop the clustered points
 # from overprinting each other.
 OFFSET = {
-    "sonnet_default": (-7, 4), "opus_default": (5, -10), "kimi": (8, 6),
-    "glm": (-7, 5), "deepseek": (-8, -10), "haiku_default": (-7, 4),
-    "llama": (7, -2), "qwen": (5, 5), "opus_nobio": (-1, -11),
+    # the four top-right points sit within a few percent of each other, so their
+    # labels are fanned out rather than offset uniformly
+    "opus5": (-3, 7), "sonnet_default": (7, -1), "opus_default": (7, -8),
+    "kimi": (-7, 1),
+    # the mid cluster
+    "haiku_default": (-7, 2), "deepseek": (0, -11), "glm": (7, 1),
+    # the low cluster
+    "llama": (7, -1), "qwen": (8, 1), "opus_nobio": (-2, -12),
 }
-HA = {"sonnet_default": "right", "deepseek": "right", "haiku_default": "right",
-      "glm": "right", "llama": "left", "qwen": "left"}
+HA = {"kimi": "right", "haiku_default": "right", "opus5": "right",
+      "sonnet_default": "left", "opus_default": "left", "glm": "left",
+      "llama": "left", "deepseek": "center", "qwen": "left",
+      "opus_nobio": "center"}
 PROP = "#3b6ea5"   # proprietary
 OPEN = "#c1663a"   # open-weight
 
@@ -100,12 +110,13 @@ def fig_mechanism(rows):
         ax.annotate(short, (x, y), textcoords="offset points",
                     xytext=OFFSET.get(r["config"], (0, -10)),
                     ha=HA.get(r["config"], "center"), fontsize=5.6, color="0.25")
-    ax.plot([0, 105], [0, 105], color="0.6", ls=":", lw=.7, zorder=1)
-    ax.text(104, 98, "every asserted link\nunsupported", fontsize=6, color="0.5",
-            ha="right", va="top")
+    ax.plot([0, 108], [0, 108], color="0.6", ls=":", lw=.7, zorder=1)
+    # Annotate the diagonal in the empty region above it, clear of every point.
+    ax.text(30, 104, "every asserted link unsupported", fontsize=6, color="0.5",
+            ha="left", va="top")
     ax.set_xlabel("Narratives asserting a gene-disease link (%)")
     ax.set_ylabel("Narratives with an\nunsupported claim (%)")
-    ax.set_xlim(22, 118)
+    ax.set_xlim(14, 126)
     ax.set_ylim(8, 112)
     ax.tick_params(length=2)
     fig.tight_layout(pad=.3)
