@@ -23,9 +23,9 @@ import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).parent
-from _paths import require_tex
+from _paths import full_text, require_tex
 TEX = require_tex()
-tex_raw = TEX.read_text(encoding="utf-8")
+tex_raw = full_text()
 tex = re.sub(r"(?<!\\)%.*", "", tex_raw)
 
 # ---- what audit_numbers.py already checked -------------------------------

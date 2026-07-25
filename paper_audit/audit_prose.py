@@ -12,9 +12,10 @@ from __future__ import annotations
 import re
 import sys
 
-from _paths import require_tex
+from _paths import full_text, require_tex
 
-tex = require_tex().read_text(encoding="utf-8")
+require_tex()
+tex = full_text()
 body = re.sub(r"(?<!\\)%.*", "", tex)
 problems: list[str] = []
 
@@ -45,7 +46,19 @@ all_labels = set(re.findall(r"\\label\{([^}]*)\}", body))
 all_refs: set[str] = set()
 for g in re.findall(r"\\(?:eq|c|C)?ref\{([^}]*)\}", body):
     all_refs.update(x.strip() for x in g.split(","))
-for orphan in sorted(all_labels - all_refs):
+# Supplementary tables are cited as "Table S1" in prose, not by \ref, because
+# they live in a separate document. Treat them as referenced when the main text
+# actually mentions their S-number.
+from _paths import SUPP as _SUPP
+supp_labels: set[str] = set()
+if _SUPP.exists():
+    supp_src = _SUPP.read_text(encoding="utf-8")
+    supp_labels = set(re.findall(r"\\label\{([^}]*)\}", supp_src))
+    n_cited = len(re.findall(r"Table~S\d", body))
+    if n_cited < len(supp_labels):
+        flag(f"{len(supp_labels)} supplementary tables but only {n_cited} "
+             f"'Table~S<n>' citations in the main text")
+for orphan in sorted(all_labels - all_refs - supp_labels):
     flag(f"label defined but never referenced: {orphan}")
 
 # --- 1b. spelled-out counts agree with the data ---------------------------

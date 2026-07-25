@@ -25,7 +25,18 @@ RESULTS = DATA / "results_comparison"
 #: The manuscript. Defaults to a sibling ``gnnarrate-paper`` checkout.
 PAPER = pathlib.Path(os.environ.get("GNNARRATE_PAPER", REPO.parent / "gnnarrate-paper"))
 TEX = PAPER / "submission" / "main.tex"
+#: Detail tables live in a separate document so they do not count against the
+#: page limit. Content checks must read both; the page estimate must not.
+SUPP = PAPER / "submission" / "supplementary.tex"
 FIGURES = PAPER / "submission" / "figures"
+
+
+def full_text() -> str:
+    """Manuscript plus supplementary, for checks that follow a table anywhere."""
+    text = TEX.read_text(encoding="utf-8")
+    if SUPP.exists():
+        text += "\n" + SUPP.read_text(encoding="utf-8")
+    return text
 
 #: The CLARUS platform, used only to confirm the cohort size quoted in the paper.
 _platform = os.environ.get("GNNARRATE_PLATFORM")

@@ -12,12 +12,12 @@ import json
 import pathlib
 import re
 
-from _paths import DATA, RESULTS as RES, require_tex
+from _paths import DATA, RESULTS as RES, full_text, require_tex
 TEX = require_tex()
 
 
 
-tex = re.sub(r"(?<!\\)%.*", "", TEX.read_text(encoding="utf-8"))
+tex = re.sub(r"(?<!\\)%.*", "", full_text())
 ok, bad = [], []
 
 
