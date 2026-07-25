@@ -195,6 +195,61 @@ check("census pathway pct", find(r"mechanistic roles \((\d+\.\d+)\\% of the"),
 check("census offgraph pct", find(r"off-graph genes \((\d+\.\d+)\\%\)"),
       100 * kinds["offgraph_gene"] / tot_unchecked, 0.06)
 
+# ---------- architecture table: the paper's strongest claim ----------
+# This table went unverified while every weaker table was checked, and a cell
+# had drifted from the data. Check every cell, and the derived spread with it.
+ARCH_FILES = {"Opus 4.8": "architecture_comparison_opus.json",
+              "Kimi K2": "architecture_comparison_kimi.json"}
+arch_tbl = re.search(r"\\label\{tab:architecture\}(.*?)\\end\{tabular\}", tex, re.S)
+abody = arch_tbl.group(1) if arch_tbl else ""
+for label, fname in ARCH_FILES.items():
+    path = DATA / "results_arch" / fname
+    if not path.exists():
+        continue
+    per = {r["arch"]: r["grounding_precision"]
+           for r in json.loads(path.read_text(encoding="utf-8"))}
+    row = re.search(rf"^{re.escape(label)}\s*&(.*?)\\\\", abody, re.M)
+    if not row:
+        bad.append(f"architecture table: no row for {label}   <-- MISMATCH")
+        continue
+    cells = [c.strip() for c in row.group(1).split("&")]
+    for i, arch in enumerate(("gcn", "gin", "gat")):
+        got = re.search(r"(\d\.\d+)", cells[i])
+        check(f"arch {label}/{arch.upper()}",
+              float(got.group(1)) if got else None, per[arch], 0.0005)
+    spread = re.search(r"(\d\.\d+)", cells[3])
+    check(f"arch {label}/spread",
+          float(spread.group(1)) if spread else None,
+          max(per.values()) - min(per.values()), 0.0005)
+
+# ---------- attribution quality: every cell of the new table ----------
+_aq_path = DATA / "results_arch" / "attribution_quality_ci.json"
+if _aq_path.exists():
+    aq = json.loads(_aq_path.read_text(encoding="utf-8"))
+    aq_tbl = re.search(r"\\label\{tab:attrquality\}(.*?)\\end\{tabular\}", tex, re.S)
+    qbody = aq_tbl.group(1) if aq_tbl else ""
+    for label, key in (("GCN", "gcn"), ("GIN", "gin"), ("GAT", "gat")):
+        row = re.search(rf"^{re.escape(label)}\s*&(.*?)\\\\", qbody, re.M)
+        if not row or key not in aq:
+            continue
+        cells = [c.strip() for c in row.group(1).split("&")]
+        v = aq[key]
+        fp = re.search(r"(\d\.\d+)", cells[0].replace(r"\textbf{", ""))
+        check(f"attrquality {label}/Fid+",
+              float(fp.group(1)) if fp else None, v["fidelity_plus"]["mean"], 0.0005)
+        lo_hi = re.findall(r"(\d\.\d+)", cells[0].replace(r"\textbf{", ""))
+        if len(lo_hi) == 3:
+            check(f"attrquality {label}/Fid+ lo", float(lo_hi[1]),
+                  v["fidelity_plus"]["lo"], 0.0005)
+            check(f"attrquality {label}/Fid+ hi", float(lo_hi[2]),
+                  v["fidelity_plus"]["hi"], 0.0005)
+        dist = re.search(r"(\d+)", cells[2].replace(r"\textbf{", ""))
+        check(f"attrquality {label}/distinct",
+              int(dist.group(1)) if dist else None, v["distinct_genes_in_topk"], 0)
+        jac = re.search(r"(\d\.\d+)", cells[3].replace(r"\textbf{", ""))
+        check(f"attrquality {label}/jaccard",
+              float(jac.group(1)) if jac else None, v["mean_pairwise_jaccard"], 0.0005)
+
 # ---------- modality language ----------
 modality = json.loads((RES / "modality_language.json").read_text(encoding="utf-8"))
 _ts, _es = modality["transcriptomic_sentences"], modality["epigenomic_sentences"]
