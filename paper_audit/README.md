@@ -28,6 +28,8 @@ when the platform is absent — the dataset is too large to vendor here.
 | `audit_numbers.py` | Every quantitative claim against the released CSVs and JSON. The main defence against stale numbers. |
 | `audit_coverage.py` | That *no* numeric literal is unaccounted for — each is verified, structural, or explicitly derived with a written reason. |
 | `audit_method.py` | That the method section describes what the code actually does, by reading the package source. |
+| `audit_prose.py` | What the numeric audits cannot see: orphaned labels, spelled-out counts that disagree with the data, tables missing a row, terminology variants, search-and-replace leftovers. |
+| `audit_escapes.py` | LaTeX commands destroyed by Python or shell escape handling — `\ref` eaten into a carriage return, and the "healed" form left behind after a text-mode round trip. |
 | `check_manuscript.py` | Citations resolve, refs have labels, environments and braces balance, no placeholders reach the PDF. |
 | `check_jbhi.py` | JBHI submission rules: abstract word limit, document class, ORCIDs, page estimate, overlength charges. |
 | `check_no_ai_mention.py` | Which AI mentions would print, separating models named as objects of study from anything else. |
@@ -42,6 +44,8 @@ python paper_audit/audit_numbers.py     # expect: no discrepancies
 python paper_audit/audit_coverage.py    # expect: UNACCOUNTED 0
 python paper_audit/check_manuscript.py  # expect: no blocking problems
 python paper_audit/check_jbhi.py        # expect: abstract within limit
+python paper_audit/audit_prose.py       # expect: 0 problems
+python paper_audit/audit_escapes.py     # expect: 0 problems
 python examples/audit_artefacts.py      # expect: no integrity problems
 ```
 

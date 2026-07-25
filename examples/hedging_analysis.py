@@ -33,6 +33,8 @@ from gnnarrate import DiseaseAssociations
 from gnnarrate._textutil import has_term, mentions, sentences
 from gnnarrate.clarus_log import parse_clarus_log
 
+from _configs import reported_dirs
+
 LOGS = pathlib.Path("data/clarus_logs_kirc")
 EXP = pathlib.Path("data/experiments")
 OUT = pathlib.Path("data/results_comparison")
@@ -54,7 +56,7 @@ def main() -> int:
 
     rows = []
     print(f"{'config':<16}{'flagged':>9}{'hedged':>9}{'asserted':>10}{'hedged %':>10}")
-    for d in sorted(p for p in EXP.glob("*") if p.is_dir()):
+    for d in reported_dirs(EXP):
         flagged = hedged = 0
         for f in sorted(d.glob("narrative_*.txt")):
             pid = f.stem.replace("narrative_", "")

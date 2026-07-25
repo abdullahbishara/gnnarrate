@@ -88,12 +88,16 @@ def fig_grounding(rows):
     ax.set_yticklabels([f"{r['label']}  ($n$={r['n']})" for r in rows], fontsize=6.8)
     ax.set_xlabel("Grounding precision (95% CI)")
     ax.set_xlim(0.1, 1.0)
-    ax.set_ylim(-0.8, len(rows) - 0.2)
+    # Extra room below the last row so the legend has a band of its own.
+    ax.set_ylim(-1.5, len(rows) - 0.2)
     ax.tick_params(length=2)
     h = [plt.Line2D([], [], color=PROP, marker="o", ls="-", ms=4, lw=1.4),
          plt.Line2D([], [], color=OPEN, marker="o", ls="-", ms=4, lw=1.4)]
-    ax.legend(h, ["proprietary", "open-weight"], fontsize=6.5, frameon=False,
-              loc="upper right", bbox_to_anchor=(1.02, .28), handlelength=1.4)
+    # One line, in the empty band below the last row. Stacked or higher up, a
+    # swatch sits level with a data row at x~0.52 and reads as a data point.
+    ax.legend(h, ["proprietary", "open-weight"], fontsize=6, frameon=False,
+              loc="lower right", bbox_to_anchor=(1.03, -0.03), handlelength=1.0,
+              ncol=2, columnspacing=0.8, handletextpad=0.5)
     fig.tight_layout(pad=.3)
     p = OUT / "fig_grounding.pdf"
     fig.savefig(p, bbox_inches="tight")
@@ -111,8 +115,9 @@ def fig_mechanism(rows):
                     xytext=OFFSET.get(r["config"], (0, -10)),
                     ha=HA.get(r["config"], "center"), fontsize=5.6, color="0.25")
     ax.plot([0, 108], [0, 108], color="0.6", ls=":", lw=.7, zorder=1)
-    # Annotate the diagonal in the empty region above it, clear of every point.
-    ax.text(30, 104, "every asserted link unsupported", fontsize=6, color="0.5",
+    # Annotate the diagonal in the empty region above it. Kept well left: at
+    # x=30 the text runs into the "Opus 5" label sitting at the top of the range.
+    ax.text(16, 104, "every asserted link unsupported", fontsize=6, color="0.5",
             ha="left", va="top")
     ax.set_xlabel("Narratives asserting a gene-disease link (%)")
     ax.set_ylabel("Narratives with an\nunsupported claim (%)")

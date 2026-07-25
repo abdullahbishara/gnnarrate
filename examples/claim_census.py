@@ -26,6 +26,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from gnnarrate._textutil import has_term, mentions, sentences
 from gnnarrate.clarus_log import parse_clarus_log
 
+from _configs import reported_dirs
+
 LOGS = pathlib.Path("data/clarus_logs_kirc")
 EXP = pathlib.Path("data/experiments")
 OUT = pathlib.Path("data/results_comparison")
@@ -45,7 +47,7 @@ STOP = frozenset({"GNN","GNNS","LLM","XAI","GCN","GIN","GAT","IG","AI","DNA","RN
 def main() -> int:
     rows = []
     print(f"{'config':<16}{'biomed sent':>12}{'checked':>9}{'unchecked':>11}{'coverage':>10}")
-    for d in sorted(p for p in EXP.glob("*") if p.is_dir()):
+    for d in reported_dirs(EXP):
         checked = unchecked = 0
         kinds = {"pathway": 0, "prognosis": 0, "offgraph_gene": 0, "other": 0}
         for f in sorted(d.glob("narrative_*.txt")):

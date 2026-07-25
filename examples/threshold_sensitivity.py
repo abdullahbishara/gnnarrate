@@ -24,6 +24,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from gnnarrate import DiseaseAssociations, score_grounding
 from gnnarrate.clarus_log import parse_clarus_log
 
+from _configs import reported_dirs
+
 LOGS = pathlib.Path("data/clarus_logs_kirc")
 EXP = pathlib.Path("data/experiments")
 OUT = pathlib.Path("data/results_comparison")
@@ -31,7 +33,7 @@ THRESHOLDS = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.5]
 
 
 def main() -> int:
-    configs = sorted(d.name for d in EXP.glob("*") if d.is_dir())
+    configs = [d.name for d in reported_dirs(EXP)]
     # Load every narrative once; rescoring is cheap, re-reading is not.
     corpus = {}
     for c in configs:

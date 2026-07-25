@@ -32,8 +32,11 @@ def check(label, claimed, actual, tol=0.0051):
 
 
 def find(pattern, cast=float):
+    """First match, cast. Multi-group patterns hand the cast all groups."""
     m = re.search(pattern, tex)
-    return cast(m.group(1)) if m else None
+    if not m:
+        return None
+    return cast(m.groups() if m.re.groups > 1 else m.group(1))
 
 
 # ---------- source data ----------
@@ -138,11 +141,24 @@ check("hedging: Qwen hedged pct", find(r"hedges only (\d+\.\d+)\\% of its unsupp
 # ---------- census ----------
 check("census: coverage pct", find(r"\((\d+\.\d+)\\%\) are gene--disease links"),
       census["coverage_pct"], 0.06)
+# Match the thousands digit rather than hard-coding it: baking "1" or "6" into
+# the pattern makes the check fail silently the moment a total crosses a
+# thousand boundary, which is exactly when it most needs to fire.
 check("census: checked count",
-      find(r"corpus, 1\{,\}(\d+) of", lambda s: int("1" + s)), census["total_checked"], 0)
+      find(r"corpus, (\d)\{,\}(\d+) of", lambda m: int(m[0] + m[1])),
+      census["total_checked"], 0)
 check("census: total assertions",
-      find(r"of 6\{,\}(\d+) \(", lambda s: int("6" + s)),
+      find(r"of (\d)\{,\}(\d+) \(", lambda m: int(m[0] + m[1])),
       census["total_checked"] + census["total_unchecked"], 0)
+
+# ---------- graph size, stated by every log's own header ----------
+sizes = {m.group(1) for p in sorted((DATA / "clarus_logs_kirc").glob("*.txt"))
+         for m in [re.search(r"top \d+ of (\d+) genes", p.read_text(encoding="utf-8"))]
+         if m}
+if len(sizes) == 1:
+    check("cohort: genes per full network",
+          find(r"contain (\d)\{,\}(\d+) genes per patient", lambda m: int(m[0] + m[1])),
+          int(next(iter(sizes))), 0)
 
 # ---------- threshold: every value quoted in the sweep sentence ----------
 tmap = {r["threshold"]: r["mean"] for r in thresh}

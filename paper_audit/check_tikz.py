@@ -28,10 +28,13 @@ print(f"\nstatements: {n_node} nodes, {n_draw} draws, {len(stmts)} semicolon-ter
 if len(stmts) < n_node + n_draw:
     print("  WARNING: a \\node or \\draw may be missing its ';'")
 
-# node names defined vs referenced
+# node names defined vs referenced. Label text is scanned too unless it is
+# stripped first: a label reading "$N=g(L)$" otherwise looks like a reference to
+# a node called L, and the resulting warning points at a figure that is fine.
+positions = re.sub(r"\$[^$]*\$", "", body)
 defined = set(re.findall(r"\\node\[[^\]]*\]\s*\((\w+)\)", body))
-refd = set(re.findall(r"\((\w+)(?:\.\w+)?\)", body)) | set(
-    re.findall(r"of\s+(\w+)", body))
+refd = set(re.findall(r"\((\w+)(?:\.\w+)?\)", positions)) | set(
+    re.findall(r"of\s+(\w+)", positions))
 refd -= {"0", "ar"}
 unknown = {r for r in refd if r not in defined and not r.isdigit()}
 print(f"\nnodes defined: {sorted(defined)}")

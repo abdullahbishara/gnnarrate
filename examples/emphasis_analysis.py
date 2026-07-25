@@ -29,6 +29,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from gnnarrate._textutil import mentions
 from gnnarrate.clarus_log import parse_clarus_log
 
+from _configs import reported_dirs
+
 LOGS = pathlib.Path("data/clarus_logs_kirc")
 EXP = pathlib.Path("data/experiments")
 OUT = pathlib.Path("data/results_comparison")
@@ -55,7 +57,7 @@ def first_mention_index(narrative: str, gene: str) -> int | None:
 def main() -> int:
     rows = []
     print(f"{'config':<16}{'narratives':>11}{'mean rho':>10}{'exact order':>13}")
-    for d in sorted(p for p in EXP.glob("*") if p.is_dir()):
+    for d in reported_dirs(EXP):
         rhos, exact, used = [], 0, 0
         for f in sorted(d.glob("narrative_*.txt")):
             pid = f.stem.replace("narrative_", "")

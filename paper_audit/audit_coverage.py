@@ -49,6 +49,9 @@ STRUCTURAL_VALUES = {
     "4.8", "4.5", "4.6", "3.3", "2.5", "72", "5",   # model version numbers
     "14", "250",                 # page limit, abstract word limit (stated in comments)
     "4096",                      # generation token budget, a configuration choice
+    "3",                         # min token length of the fabrication detector's
+                                 # candidate regex; audit_method.py checks the
+                                 # prose against the pattern in faithfulness.py
 }
 # Values that follow arithmetically from something already verified.
 DERIVED = {

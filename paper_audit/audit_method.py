@@ -59,6 +59,14 @@ verify("paper's 4096-token budget matches the code default",
 verify("terse variant exists as described",
        "terse" in src("benchmark.py"))
 
+# The paper describes the fabrication detector's candidate pattern in prose
+# ("tokens of length >= 3 beginning with a letter"). Tie that sentence to the
+# regex so the two cannot drift apart.
+verify("fabrication candidate pattern matches the prose description",
+       r"\b[A-Z][A-Z0-9]{2,}\b" in faith
+       and re.search(r"tokens of length \$\\geq 3\$ beginning with a letter", TEX)
+       is not None)
+
 # --- claims about ground truth provenance ---
 # The judge must be blind: it is called with the narrative alone, and the log's
 # verdict is only consulted afterwards to score it.
