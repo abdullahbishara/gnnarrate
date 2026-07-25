@@ -77,6 +77,9 @@ DERIVED = {
     "0.32": "abstract, rounded from the verified 0.318 (Haiku 4.5)",
     "0.50": "abstract, rounded from the verified 0.498 (Opus 4.8, context off)",
     "0.90": "abstract, rounded from the verified 0.902 (GIN, Opus narrator)",
+    "0.006": "Fidelity- for GCN and GAT; verified as -0.006, and the scanner "
+             "reads the magnitude without the leading minus",
+    "0.003": "cohort-purity delta = 0.426 - 0.422, both means verified",
 }
 
 found: dict[str, list[int]] = {}

@@ -249,6 +249,12 @@ if _auroc.exists():
     _base = find(r"positive base\nrate of (\d\.\d+)")
     if _base is not None and "gcn" in _rows:
         check("AUPRC baseline", _base, float(_rows["gcn"]["auprc_baseline"]), 0.006)
+    # The shared GIN/GAT accuracy is the control the fidelity contrast rests on.
+    _acc = find(r"share capacity, seed and test accuracy \((\d\.\d+)\)")
+    if _acc is not None and "gin" in _rows and "gat" in _rows:
+        check("GIN/GAT shared accuracy", _acc, float(_rows["gin"]["accuracy"]), 0.006)
+        check("GAT accuracy matches GIN",
+              float(_rows["gat"]["accuracy"]), float(_rows["gin"]["accuracy"]), 0.0001)
 
 # ---------- cohort composition, recomputed from the TCGA barcodes ----------
 _bc = DATA / "kirc_barcodes.tsv"
@@ -349,6 +355,12 @@ if _aq_path.exists():
                   v["fidelity_plus"]["lo"], 0.0005)
             check(f"attrquality {label}/Fid+ hi", float(lo_hi[2]),
                   v["fidelity_plus"]["hi"], 0.0005)
+        fm = re.search(r"(\d\.\d+)", cells[1].replace(r"\phantom{$-$}", ""))
+        if fm:
+            check(f"attrquality {label}/Fid-",
+                  -float(fm.group(1)) if "-" in cells[1].replace(r"$-$}", "")
+                  else float(fm.group(1)),
+                  v["fidelity_minus"]["mean"], 0.0006)
         dist = re.search(r"(\d+)", cells[2].replace(r"\textbf{", ""))
         check(f"attrquality {label}/distinct",
               int(dist.group(1)) if dist else None, v["distinct_genes_in_topk"], 0)

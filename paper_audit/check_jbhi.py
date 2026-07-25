@@ -31,9 +31,28 @@ print(f"IEEEkeywords block: {'present' if 'IEEEkeywords' in t_nc else 'MISSING'}
 print(f"IEEEPARstart (first-para drop cap): "
       f"{'present' if 'IEEEPARstart' in t_nc else 'MISSING'}")
 
-# ORCIDs
-print(f"\nORCIDs in author block: "
-      f"{'present' if 'orcid' in t_nc.lower() else 'MISSING -- JBHI requires ORCID for all authors'}")
+# ORCIDs. A transposed digit names the wrong person and looks fine, so verify
+# the ISO 7064 MOD 11-2 check digit rather than only the presence of the field.
+orcids = re.findall(r"ORCID:\s*(\d{4}-\d{4}-\d{4}-\d{3}[\dXx])", t_nc)
+pending = len(re.findall(r"ORCID:\s*TODO", t_nc))
+
+
+def _orcid_ok(o: str) -> bool:
+    d = o.replace("-", "")
+    total = 0
+    for ch in d[:15]:
+        total = (total + int(ch)) * 2
+    expect = (12 - total % 11) % 11
+    return ("X" if expect == 10 else str(expect)) == d[15].upper()
+
+
+print("\nORCIDs in author block:")
+if not orcids and not pending:
+    print("  MISSING -- JBHI requires ORCID for all authors")
+for o in orcids:
+    print(f"  {o}  {'valid check digit' if _orcid_ok(o) else 'INVALID CHECK DIGIT'}")
+if pending:
+    print(f"  {pending} still a TODO placeholder -- supply before submitting")
 
 # Floats
 print(f"\nFigures: {len(re.findall(r'begin\{figure', t_nc))}  "
