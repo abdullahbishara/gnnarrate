@@ -253,6 +253,10 @@ if _auroc.exists():
 # ---------- cohort composition, recomputed from the TCGA barcodes ----------
 _bc = DATA / "kirc_barcodes.tsv"
 if _bc.exists():
+    # Tissue-source-site codes, checked against the GDC code table at
+    # gdc.cancer.gov/resources-tcga-users/tcga-code-tables/tissue-source-site-codes
+    # rather than recalled. Every code below was confirmed there; G6 in
+    # particular is KIRC, which an earlier pass had wrongly left unclassified.
     _KIRC_TSS = {"3Z", "6D", "A3", "AK", "AS", "B0", "B2", "B4", "B8", "BP", "CB",
                  "CJ", "CW", "CZ", "DV", "DW", "EU", "GK", "MM", "MW", "T7", "G6"}
     _BRCA_TSS = {"A1", "A2", "A7", "A8", "AC", "AN", "AO", "AQ", "AR", "B6", "BH",
