@@ -11,6 +11,23 @@ import re
 from _paths import require_tex
 t = require_tex().read_text(encoding="utf-8")
 
+#: Keys TikZ/PGF already define. Defining a node style with one of these names
+#: shadows the built-in and can abort the build. `out` collides with the
+#: to[out=..,in=..] path key; this check exists because that shipped unnoticed
+#: until an external reviewer actually compiled the source.
+RESERVED_TIKZ_KEYS = {
+    "out", "in", "at", "anchor", "shift", "scale", "rotate", "pos", "sloped",
+    "bend", "loop", "distance", "opacity", "name", "label",
+}
+_styles = set(re.findall(r"^\s*([A-Za-z@]+)\s*/\.style", t, re.M))
+_clash = sorted(_styles & RESERVED_TIKZ_KEYS)
+print("style names:")
+if _clash:
+    print(f"  RESERVED KEY REDEFINED: {', '.join(_clash)}"
+          f"  -- rename; this can break the build")
+else:
+    print(f"  {len(_styles)} defined, none shadow a reserved TikZ key")
+
 m = re.search(r"\\begin\{tikzpicture\}(.*?)\\end\{tikzpicture\}", t, re.S)
 if not m:
     raise SystemExit("no tikzpicture found")
