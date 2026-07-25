@@ -29,7 +29,7 @@ from gnnarrate.config import load_env, use_utf8_stdout
 LOGS = pathlib.Path("data/clarus_logs_arch")
 OUT = pathlib.Path("data/results_arch")
 ARCHS = ["gcn", "gin", "gat"]
-MODEL = "claude-opus-4-8"
+DEFAULT_MODEL = "claude-opus-4-8"
 
 
 def retry(fn, *a, attempts=4, **k):
@@ -42,10 +42,10 @@ def retry(fn, *a, attempts=4, **k):
             time.sleep(4 * (i + 1))
 
 
-def generate(archs):
-    gen = llm_generator(provider="anthropic")
+def generate(archs, model, provider, tag):
+    gen = llm_generator(provider=provider)
     for arch in archs:
-        src, dest = LOGS / arch, OUT / arch
+        src, dest = LOGS / arch, OUT / (arch if tag == "opus" else f"{arch}_{tag}")
         dest.mkdir(parents=True, exist_ok=True)
         made = reused = 0
         for p in sorted(src.glob("*.txt")):
@@ -54,7 +54,7 @@ def generate(archs):
                 reused += 1
                 continue
             try:
-                f.write_text(retry(gen, p.read_text(encoding="utf-8"), MODEL, "default"),
+                f.write_text(retry(gen, p.read_text(encoding="utf-8"), model, "default"),
                              encoding="utf-8")
                 made += 1
             except Exception as exc:
@@ -62,13 +62,14 @@ def generate(archs):
         print(f"  {arch}: {reused} reused, {made} new", flush=True)
 
 
-def score(archs, assoc):
+def score(archs, assoc, tag="opus"):
     rows = []
     print(f"\n{'arch':<6}{'n':>4}{'recall':>9}{'grounding':>11}"
           f"{'fab/n':>8}{'claim%':>9}{'halluc%':>9}")
     for arch in archs:
         rec, prec, fab, claim, hall, n = [], [], 0, 0, 0, 0
-        for f in sorted((OUT / arch).glob("narrative_*.txt")):
+        sub = OUT / (arch if tag == "opus" else f"{arch}_{tag}")
+        for f in sorted(sub.glob("narrative_*.txt")):
             pid = f.stem.replace("narrative_", "")
             lf = LOGS / arch / f"{pid}.txt"
             if not lf.exists():
@@ -101,7 +102,7 @@ def score(archs, assoc):
               f"{row['pct_making_a_claim']*100:>8.0f}%{row['pct_with_unsupported_claim']*100:>8.0f}%")
 
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "architecture_comparison.json").write_text(
+    (OUT / f"architecture_comparison_{tag}.json").write_text(
         json.dumps(rows, indent=2), encoding="utf-8")
     if len(rows) > 1:
         gs = [r["grounding_precision"] for r in rows if r["grounding_precision"]]
@@ -115,6 +116,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--archs", default=",".join(ARCHS))
     ap.add_argument("--score-only", action="store_true")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--provider", default="anthropic")
+    ap.add_argument("--tag", default="opus", help="output suffix for this model")
     args = ap.parse_args()
 
     load_env()
@@ -126,9 +130,9 @@ def main() -> int:
         terms=["kidney", "renal", "carcinoma", "cancer", "tumor"])
 
     if not args.score_only:
-        print(f"narrating {archs} with {MODEL}", flush=True)
-        generate(archs)
-    score(archs, assoc)
+        print(f"narrating {archs} with {args.model}", flush=True)
+        generate(archs, args.model, args.provider, args.tag)
+    score(archs, assoc, args.tag)
     return 0
 
 

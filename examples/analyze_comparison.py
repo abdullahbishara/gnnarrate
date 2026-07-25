@@ -126,11 +126,22 @@ def main() -> int:
     args = parser.parse_args()
 
     use_utf8_stdout()
-    excluded = {c.strip() for c in args.exclude.split(",") if c.strip()}
+    # Prompt-template variants answer a different question and are reported
+    # separately; including them here would mix them into the model comparison.
+    VARIANTS = {"opus_terse", "kimi_terse"}
+    excluded = {c.strip() for c in args.exclude.split(",") if c.strip()} | VARIANTS
     configs = sorted(
         d.name for d in EXPERIMENTS.iterdir()
         if d.is_dir() and d.name not in excluded and any(d.glob("narrative_*.txt"))
     )
+    # Refuse to silently report a partial run: the corpus is 127 patients.
+    partial = {c: len(list((EXPERIMENTS / c).glob("narrative_*.txt"))) for c in configs}
+    partial = {c: n for c, n in partial.items() if n < 127}
+    if partial:
+        print("WARNING - partial runs included (finish them before publishing):")
+        for c, n in sorted(partial.items()):
+            print(f"    {c}: {n}/127")
+        print()
     if not configs:
         print(f"no narratives found under {EXPERIMENTS}")
         return 1

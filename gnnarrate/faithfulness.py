@@ -31,11 +31,25 @@ from .clarus_log import ParsedLog
 # the stoplist below).
 _CANDIDATE = re.compile(r"\b[A-Z][A-Z0-9]{2,}\b")
 
-# Method/domain acronyms that look like gene symbols but aren't entities.
+# Uppercase tokens that look like gene symbols but are not.
+#
+# Two groups. Method/dataset acronyms are obvious. The second group matters more:
+# narratives routinely name pathways, protein families, structural domains and
+# disease abbreviations, all of which are correct biology rather than invented
+# genes. Counting them as fabrications inflates the measure -- inspection of one
+# corpus found nearly every flagged token to be of this kind. Genuine gene symbols
+# absent from the patient graph (NRF2, BRCA1) are deliberately NOT listed: those
+# are real off-graph mentions and the metric should report them.
 _STOPWORDS = frozenset({
+    # method, dataset and reporting acronyms
     "GNN", "GNNS", "LLM", "LLMS", "XAI", "GCN", "GIN", "GAT", "CLARUS",
     "AI", "ML", "DNA", "RNA", "PPI", "KIRC", "MUTAG", "TN", "TP", "FP", "FN",
     "ROC", "AUC", "API", "SHAP", "LIME", "IG", "JBHI", "SI",
+    # pathways, families, domains, receptor classes -- not gene symbols
+    "RAS", "PI3K", "MAPK", "GPCR", "GPCRS", "S6K", "HECT", "WASP", "JAK",
+    "STAT", "TGF", "NFKB", "MTOR", "ERK", "AMPK", "HIF", "ROS", "ECM",
+    # disease and clinical abbreviations
+    "RCC", "CCRCC", "TCGA", "OS", "PFS",
 })
 
 _FLIP_WORDS = re.compile(
