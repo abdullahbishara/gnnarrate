@@ -195,6 +195,22 @@ check("census pathway pct", find(r"mechanistic roles \((\d+\.\d+)\\% of the"),
 check("census offgraph pct", find(r"off-graph genes \((\d+\.\d+)\\%\)"),
       100 * kinds["offgraph_gene"] / tot_unchecked, 0.06)
 
+# ---------- exposure percentages quoted inline, not just in the table ----------
+# The prose gave Qwen as (34%, 26%) while the table and the data said 35% / 27%:
+# a table cell can be right while the sentence beside it drifts.
+INLINE = {
+    "Qwen2.5-72B": ("qwen", r"Qwen2\.5-72B \((\d+)\\%, (\d+)\\%\)"),
+    "Sonnet 5": ("sonnet_default", r"Sonnet~5 \((\d+)\\%, (\d+)\\%\)"),
+    "Opus w/ instruction": ("opus_default", r"instruction \((\d+)\\%, (\d+)\\%\)"),
+}
+for label, (cfg, pat) in INLINE.items():
+    got = find(pat, lambda m: [int(x) for x in m])
+    if got and cfg in per_model:
+        check(f"inline claims% {label}", got[0],
+              round(float(per_model[cfg]["pct_making_a_claim"]) * 100), 0)
+        check(f"inline halluc% {label}", got[1],
+              round(float(per_model[cfg]["pct_with_unsupported_claim"]) * 100), 0)
+
 # ---------- full-graph counterfactual flips and the random-gene control ----------
 _fg = DATA / "results_arch" / "fullgraph_cf_diagnosis.json"
 if _fg.exists():
