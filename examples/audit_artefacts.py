@@ -79,7 +79,8 @@ narr_mtime = max(newest(DATA / "experiments" / d, "narrative_*.txt")
 derived = ["results_comparison/per_model.csv", "results_comparison/hedging.json",
            "results_comparison/threshold_sensitivity.json",
            "results_comparison/claim_census.json", "results_comparison/emphasis.json",
-           "results_comparison/interaction.json"]
+           "results_comparison/interaction.json",
+           "results_comparison/modality_language.json"]
 figs = pathlib.Path("../gnnarrate-paper/submission/figures")
 derived_paths = [DATA / d for d in derived] + list(figs.glob("*.pdf"))
 for f in derived_paths:

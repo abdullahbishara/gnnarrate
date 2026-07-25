@@ -195,6 +195,35 @@ check("census pathway pct", find(r"mechanistic roles \((\d+\.\d+)\\% of the"),
 check("census offgraph pct", find(r"off-graph genes \((\d+\.\d+)\\%\)"),
       100 * kinds["offgraph_gene"] / tot_unchecked, 0.06)
 
+# ---------- modality language ----------
+modality = json.loads((RES / "modality_language.json").read_text(encoding="utf-8"))
+_ts, _es = modality["transcriptomic_sentences"], modality["epigenomic_sentences"]
+check("modality: committed sentences",
+      find(r"Of the (\d+) sentences that commit to a modality", int), _ts + _es, 0)
+check("modality: transcriptomic count",
+      find(r"modality, (\d+) \(9", int), _ts, 0)
+check("modality: transcriptomic share",
+      find(r"\((\d+\.\d+)\\%\) are\ntranscriptomic"),
+      modality["transcriptomic_share_of_modality_sentences"], 0.06)
+check("modality: epigenomic count",
+      find(r"against (\d+) epigenomic", int), _es, 0)
+check("modality: pct transcriptomic only",
+      find(r"Some (\d+\.\d+)\\% of narratives use transcriptomic"),
+      modality["pct_transcriptomic_only"], 0.06)
+check("modality: pct both or agnostic",
+      find(r"only (\d+\.\d+)\\% either name both"),
+      modality["pct_both_or_agnostic"], 0.06)
+# The claim that no log names a modality is what makes the finding a pipeline
+# defect rather than a model one, so verify it against the logs themselves.
+_logs = sorted((DATA / "clarus_logs_kirc").glob("*.txt"))
+_with_modality = sum(
+    1 for p in _logs
+    if re.search(r"methyl|mRNA|expression|epigen|modalit", p.read_text(encoding="utf-8"),
+                 re.I))
+check("modality: logs naming a modality",
+      0 if re.search(r"across all 127 logs, not one contains a modality term", tex)
+      else None, _with_modality, 0)
+
 # ---------- emphasis: mean across configurations ----------
 import statistics as _st
 check("emphasis mean rho", find(r"and \$(\d\.\d+)\$ averaged over all configurations"),
