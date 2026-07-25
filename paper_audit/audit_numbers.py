@@ -195,6 +195,45 @@ check("census pathway pct", find(r"mechanistic roles \((\d+\.\d+)\\% of the"),
 check("census offgraph pct", find(r"off-graph genes \((\d+\.\d+)\\%\)"),
       100 * kinds["offgraph_gene"] / tot_unchecked, 0.06)
 
+# ---------- full-graph counterfactual flips and the random-gene control ----------
+_fg = DATA / "results_arch" / "fullgraph_cf_diagnosis.json"
+if _fg.exists():
+    fg = json.loads(_fg.read_text(encoding="utf-8"))
+    for arch, pat in (("gcn", r"class for (\d+\.\d+)\\% of GCN patients"),
+                      ("gin", r"(\d+\.\d+)\\%\s*\n?of GIN"),
+                      ("gat", r"and (\d+\.\d+)\\% of GAT")):
+        if arch in fg:
+            check(f"fullgraph flip {arch.upper()}", find(pat),
+                  fg[arch]["top1_flip_pct"], 0.06)
+    _rand = {a: fg[a]["random_gene_flip_pct"] for a in fg}
+    check("fullgraph random-gene control",
+          find(r"for any of the three \((\d+\.\d+)\\%"),
+          max(_rand.values()), 0.06)
+    check("fullgraph control n",
+          find(r"\$n = (\d+)\$ each", int), min(fg[a]["n"] for a in fg), 0)
+
+# ---------- discrimination metrics, from the platform's own recomputation ----------
+_auroc = DATA / "results_arch" / "auroc_auprc.csv"
+if _auroc.exists():
+    _rows = {r["architecture"]: r for r in csv.DictReader(
+        open(_auroc, newline="", encoding="utf-8"))
+        if r.get("dataset") == "kirc_random_nodes_ui"}
+    for arch, pat in (("gcn", r"AUROC (\d\.\d+) \(GCN\)"),
+                      ("gin", r"(\d\.\d+) \(GIN\)"),
+                      ("gat", r"(\d\.\d+) \(GAT\)")):
+        if arch in _rows:
+            check(f"AUROC {arch.upper()}", find(pat), float(_rows[arch]["auroc"]), 0.0006)
+    _ap = find(r"AUPRC (\d\.\d+), (\d\.\d+) and (\d\.\d+)",
+               lambda m: [float(x) for x in m])
+    if _ap:
+        for i, arch in enumerate(("gcn", "gin", "gat")):
+            if arch in _rows:
+                check(f"AUPRC {arch.upper()}", _ap[i],
+                      float(_rows[arch]["auprc"]), 0.0006)
+    _base = find(r"positive base\nrate of (\d\.\d+)")
+    if _base is not None and "gcn" in _rows:
+        check("AUPRC baseline", _base, float(_rows["gcn"]["auprc_baseline"]), 0.006)
+
 # ---------- cohort composition, recomputed from the TCGA barcodes ----------
 _bc = DATA / "kirc_barcodes.tsv"
 if _bc.exists():
@@ -323,8 +362,8 @@ _with_modality = sum(
     if re.search(r"methyl|mRNA|expression|epigen|modalit", p.read_text(encoding="utf-8"),
                  re.I))
 check("modality: logs naming a modality",
-      0 if re.search(r"across all 127 logs, not one contains a modality term", tex)
-      else None, _with_modality, 0)
+      0 if re.search(r"across\s+all\s+127\s+logs,\s+not\s+one\s+contains\s+a\s+"
+                     r"modality\s+term", tex) else None, _with_modality, 0)
 
 # ---------- emphasis: mean across configurations ----------
 import statistics as _st

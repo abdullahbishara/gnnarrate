@@ -10,7 +10,7 @@ from __future__ import annotations
 import pathlib
 import re
 
-from _paths import PACKAGE as _PKG, require_tex
+from _paths import PACKAGE as _PKG, PLATFORM, require_tex
 TEX = require_tex().read_text(encoding="utf-8")
 from _paths import PACKAGE as SRC
 
@@ -58,6 +58,22 @@ verify("paper's 4096-token budget matches the code default",
        "max_tokens: int = 4096" in llm and "4096" in TEX)
 verify("terse variant exists as described",
        "terse" in src("benchmark.py"))
+
+# The manuscript credited node relevance to GNNExplainer, when on graphs of this
+# size the platform always takes a gradient fallback. Tie the description to the
+# guard in the code so the two cannot drift apart again. Needs the platform.
+if PLATFORM is not None:
+    _gx = PLATFORM / "actionable" / "gnn_explanations.py"
+    if _gx.exists():
+        _src = _gx.read_text(encoding="utf-8")
+        _has_guard = ("num_nodes > 500" in _src and "gnnexplainer_ig_fallback" in _src)
+        verify("node relevance is described as a fallback, matching the code",
+               _has_guard and re.search(r"substitutes a gradient fallback", TEX)
+               is not None)
+        verify("attribution is over edges, not node features, as described",
+               "input_mask = torch.ones(data.edge_index.shape[1]" in _src
+               and re.search(r"no attribution is computed over the node", TEX)
+               is not None)
 
 # The paper describes the fabrication detector's candidate pattern in prose
 # ("tokens of length >= 3 beginning with a letter"). Tie that sentence to the
