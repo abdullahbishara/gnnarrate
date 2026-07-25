@@ -58,6 +58,36 @@ class GraphState:
         ranked = sorted(self.node_relevance.items(), key=lambda kv: kv[1], reverse=True)
         return [name for name, _ in ranked[:k]]
 
+    def metric_inconsistencies(self, tol: float = 1.0) -> list[str]:
+        """Report serialised metrics that disagree with the confusion matrix.
+
+        Every log in the released corpus carries ``Sensitivity: 0.75%`` where the
+        matrix gives 75%: the fraction was formatted with a percent sign, a
+        hundredfold error in the text the narrator is asked to explain. Nothing
+        caught it because the faithfulness audit never reads these numbers.
+
+        Returns one message per disagreeing field, empty when consistent.
+        """
+        problems: list[str] = []
+        c = self.confusion
+        pairs = (("sensitivity", self.sensitivity, "TP", "FN"),
+                 ("specificity", self.specificity, "TN", "FP"))
+        for name, stated, hit_key, miss_key in pairs:
+            if stated is None or hit_key not in c or miss_key not in c:
+                continue
+            denom = c[hit_key] + c[miss_key]
+            if denom == 0:
+                continue
+            expected = 100.0 * c[hit_key] / denom
+            if abs(stated - expected) > tol:
+                extra = ""
+                if abs(stated * 100.0 - expected) <= tol:
+                    extra = " (looks like a fraction written with a % sign)"
+                problems.append(
+                    f"{name} serialised as {stated}% but the confusion matrix "
+                    f"gives {expected:.1f}%{extra}")
+        return problems
+
 
 @dataclass
 class PredictionChange:

@@ -15,9 +15,11 @@ unreachable and should be abandoned rather than met with a patched manuscript.**
 
 Three routes remain, in order of preference:
 
-1. **JBHI as a regular submission.** JBHI accepts regular papers year-round with
-   no deadline. Same journal, same audience, no schedule pressure. This is the
-   recommended route.
+1. **JBHI as a regular submission.** Same journal and audience without a
+   deadline, and the recommended route — **but treat this as unverified until
+   confirmed with the JBHI Author Portal or editorial office** that regular
+   submissions are currently open and under what requirements. Do not state it
+   categorically to anyone until that confirmation is in hand.
 2. **A later special issue.** *Multimodal Large Language Models for Precision and
    Preventive Healthcare* closes 31 October 2026 — still inside the critical
    path, so only viable if WP2 and WP6 finish early. Fit is weaker than the
@@ -35,7 +37,8 @@ WP0 units ─→ WP1 folds ─→ WP2 retrain ─→ WP3 narratives ─→ WP4 c
 WP5 annotation (parallel, human-bound) ──────────────────────────────────────┤
 WP6 verifier (parallel, research) ───────────────────────────────────────────┤
                                                                               ↓
-                                                    WP8 release → WP9 layout → freeze
+                                          WP8 release → WP10 layout → freeze
+(WP9 dependency hygiene runs in parallel throughout and gates release, not layout.)
 ```
 
 ---
@@ -44,16 +47,20 @@ WP6 verifier (parallel, research) ───────────────�
 
 | | |
 |---|---|
-| **Deliverable** | Regenerated explanation logs with sensitivity/specificity as percentages, plus a shared barcode↔index utility used by every downstream script. |
-| **Inputs** | `generate_corpus_kirc.py`, `generate_corpus_arch.py`, `test_set_metrics_dict.pkl`, `kirc_barcodes.tsv`. |
-| **Command** | Patch `fmt_metrics()` in both generators; `python generate_corpus_kirc.py`; `python generate_corpus_arch.py {gcn,gin,gat} 60`. |
-| **Acceptance** | No log contains `0.75%` or `0.74%`; every log states 75% / 74%. A unit test asserts sensitivity in [0,100] and consistent with the confusion matrix. |
+| **Deliverable** | Corrected metric serialisation in all four generators, plus a validator and tests. Log *regeneration* is deferred to WP3. |
+| **Inputs** | `generate_corpus_{kirc,arch,,kirc_cf}.py`, `test_set_metrics_dict.pkl`, `kirc_barcodes.tsv`. |
+| **Command** | `_as_percent()` helper in all four generators (**done**); `gnnarrate.clarus_log.GraphState.metric_inconsistencies()` (**done**); `pytest tests/test_metric_units.py` (**done, 5 tests**). |
+| **Acceptance** | The validator flags a fraction written with a percent sign and passes on correct percentages; a test asserts the *current* corpus still fails, so the defect cannot be silently forgotten before WP3 flips it. |
 | **Sections** | §IV-B Explanation Logs; §V-A. |
 | **Depends on** | Nothing. |
-| **Complete by** | **2 Aug 2026** |
+| **Complete by** | **Code and tests complete 26 Jul 2026**; corrected logs emitted as part of WP3. |
 
-Note: this invalidates every existing narrative, because the corpus is
-regenerated from corrected logs. That is the reason WP3 exists.
+**The fix and its tests land now; the final logs are generated after WP2**,
+against the leak-free checkpoints, so the corpus is built once rather than
+twice. The four generators are patched and a validator plus five tests are in
+place; the released corpus still carries the defect and a test asserts that,
+so it cannot be forgotten. Regenerating now would be wasted work, because WP2
+changes the checkpoints the logs describe.
 
 ## WP1 — Participant-grouped folds
 
@@ -74,7 +81,7 @@ regenerated from corrected logs. That is the reason WP3 exists.
 | **Deliverable** | GCN, GIN and GAT trained on 5 folds × 5 seeds = 75 checkpoints, with per-checkpoint metrics, raw probabilities and calibration. |
 | **Inputs** | WP1 folds; `model_factory.py`; `gnn_train_test_methods.py`. |
 | **Command** | New `experiments/train_grouped.py --arch {gcn,gin,gat} --folds 5 --seeds 5`, CPU torch 2.9.1. |
-| **Acceptance** | Raw per-sample probabilities persisted for every checkpoint; AUROC/AUPRC reported as mean ± SD across seeds, not single values; accuracy re-reported post-leakage-removal (expect it to fall from 0.78–0.87). |
+| **Acceptance** | Raw per-sample probabilities persisted for every checkpoint; AUROC/AUPRC reported as mean ± SD across seeds, not single values; accuracy re-reported post-leakage-removal — **expected to change rather than necessarily to fall**, since grouped folds also alter class balance and training-set size. |
 | **Sections** | §IV-A; §V-H controls; Table VI; §VI-C. |
 | **Depends on** | WP1. |
 | **Complete by** | **11 Sep 2026** |
@@ -111,16 +118,26 @@ Cost: roughly 3× the previous corpus. Estimate before starting, not during.
 
 | | |
 |---|---|
-| **Deliverable** | Blinded annotations from two domain readers over a stratified sample of ≥200 claims, with Cohen's κ, and verifier precision, recall and calibration against them. |
-| **Inputs** | `data/annotation/annotate_*.html`, `answer_key.json`, extended categories for polarity, disease identity and phenotype. |
-| **Command** | `python examples/make_annotation_task.py --annotator {abdullah,alfarraj} --n 200 --categories extended`; score with `score_annotation.py`. |
-| **Acceptance** | κ reported; verifier precision/recall against human labels reported; the phenotype category is explicitly annotated so the false-phenotype rate is measured rather than regex-estimated. |
+| **Deliverable** | Two stages. **(a) Protocol and pilot** on the current corpus: annotation categories, instructions, qualification criteria, ethics determination, and a pilot of ~50 claims to test the instrument. **(b) Final blinded validation** drawn from the *frozen regenerated* corpus, ≥200 claims, with Cohen's κ and verifier precision, recall and calibration. |
+| **Inputs** | `data/annotation/`, extended categories for polarity, disease identity, class direction and phenotype; documented annotator expertise; ethics determination. |
+| **Command** | `python examples/make_annotation_task.py --annotator {…} --n {50 pilot, 200 final} --categories extended`; score with `score_annotation.py`. |
+| **Acceptance** | κ reported with CI; verifier precision/recall against human labels; phenotype annotated explicitly so its rate is *measured*, not regex-estimated; **a held-out annotation set reserved and not used while developing WP6**. |
 | **Sections** | §III-D; §V-A; §VI-A; abstract. |
-| **Depends on** | Nothing — **can start immediately**. Claim identity does not depend on which narrative produced it, so calibration transfers to the regenerated corpus. |
-| **Complete by** | **22 Aug 2026** |
+| **Depends on** | Pilot: nothing, starts now. **Final validation depends on WP3**, because the frozen corpus is what must be validated. |
+| **Complete by** | Protocol + ethics request **1 Aug 2026**; pilot **22 Aug 2026**; **final validation after WP3 freezes**. |
 
-Start this first. It is the only task gated on human availability rather than
-compute, and it is the single largest credibility gain.
+**Correction to an earlier draft of this plan.** It claimed annotation of the
+current corpus would validate the verifier on the regenerated one, because
+"claim identity does not depend on which narrative produced it". That is wrong.
+Retraining and corrected prompts change *which* claims appear and in what
+proportions, so the distribution and the claim types both shift. The pilot
+establishes and de-risks the instrument; **only the frozen regenerated corpus
+can furnish the validation figure that goes in the paper.**
+
+Annotators must be qualified domain readers with their expertise documented, an
+institutional ethics determination must be obtained if required, and a held-out
+portion must never be seen during WP6 development, or the verifier is tuned on
+its own test set.
 
 ## WP6 — Relation-, polarity-, disease- and class-aware verifier
 
@@ -142,18 +159,36 @@ novelty ultimately rests.
 
 | | |
 |---|---|
-| **Deliverable** | A legally releasable artefact, by one of: written permission from HCI-KDD; replacement of the reused CLARUS code; or a release containing only original modules with the upstream dependency documented. |
-| **Inputs** | `LICENSING_STATUS.md`, `ATTRIBUTION.md`. |
-| **Command** | Written request to A. Saranti / A. Holzinger; failing a reply within 4 weeks, take path 3. |
-| **Acceptance** | Either written permission on file, or a release that provably contains no upstream CLARUS code. The combined work is GPL-3.0 in either case, because GNN-SubNet is GPL-3.0. |
+| **Deliverable** | Written clearance from KFUPM legal / technology transfer covering one specific release configuration, supported by a file-level provenance matrix. |
+| **Inputs** | `LICENSING_STATUS.md`, `ATTRIBUTION.md`, `PROVENANCE-MATRIX.md`, upstream `GNN_Counterfactuals` tree at the fork commit. |
+| **Command** | `python build_provenance_matrix.py`; diff every CLAIMED ORIGINAL file against upstream; submit matrix plus draft letter to the institution. |
+| **Acceptance** | **Written institutional clearance on file.** Our own conclusion that a configuration is lawful is explicitly *not* sufficient. |
 | **Sections** | §IV-F Reproducibility; Acknowledgment. |
-| **Depends on** | Nothing — **longest lead time and outside our control**. |
-| **Complete by** | **Request sent 27 Jul 2026; decision point 24 Aug 2026** |
+| **Depends on** | Nothing — **longest lead time, outside our control, start immediately**. |
+| **Complete by** | Matrix built (done); letter drafted (done); **submitted to institution 29 Jul 2026**; decision point **when clearance is received**, not on a date we choose. |
 
-CLARUS carries **no licence at all** — all rights reserved. The reviewer's
-request to deposit "the modified CLARUS platform" cannot be met lawfully unless
-permission is granted. A previous attempt to contact the authors went
-unanswered, so plan for path 3 and treat permission as upside.
+CLARUS carries **no licence at all**, so default copyright reserves all rights
+and there is no automatic permission to reproduce, distribute or make derivative
+works. GNN-SubNet is GPL-3.0, whose obligations depend on *how* its code is
+combined with ours rather than on the mere fact of use.
+
+**The "release only our original modules" fallback is not automatically
+lawful** and must not be treated as a safe default. It is only available if
+those modules are demonstrably separable and contain no copied or adapted CLARUS
+code. Four questions must go to institutional review, not be answered by us:
+
+1. whether the original modules are legally separable from CLARUS;
+2. whether a clean-room reimplementation is required instead;
+3. whether GNN-SubNet code is incorporated, or only its data used — the GPL
+   consequence differs sharply between the two;
+4. which GPL obligations attach to each proposed release configuration.
+
+The provenance matrix already shows why this cannot be settled informally: of
+226 source files, **11 carry an original-authorship header, 94 carry HCI-KDD
+headers, and 121 carry no header at all**. Over half the tree is of
+undetermined origin, and a header is in any case evidence of what someone typed,
+not of what was copied. **No fallback bundle may be published until the
+provenance diff and the legal review are complete.**
 
 ## WP8 — Immutable reproducibility release
 
@@ -209,23 +244,42 @@ unanswered, so plan for path 3 and treat permission as upside.
 | WP8 | Immutable release | 20 Oct | WP10 |
 | WP10 | Layout repair | 28 Oct | — |
 
-**Earliest defensible submission: early November 2026**, as a JBHI regular
-paper. The status remains *not ready for JBHI submission* until WP0–WP8 are
-complete.
+**Provisional scenario, not a commitment: not before November 2026.** Licensing
+clearance, the ethics determination, expert availability and the WP6 research
+outcome are each uncertain and any one of them can move this date. No submission
+date should be quoted externally until WP7 clears and WP5's pilot has run.
 
-## What survives unchanged
+The status remains *not ready for JBHI submission* until **WP0–WP10** are
+complete — including WP9 and WP10, not WP0–WP8.
 
-The reruns will move numbers, but three findings rest on structure rather than
-on the leaked splits and should survive:
+**The regular-submission route must be confirmed, not assumed.** Before relying
+on it, check with the JBHI Author Portal or editorial office that regular
+submissions are currently open, and under what requirements; this plan treats
+that as unverified.
 
-- **Faithfulness and groundedness dissociate.** Measured per narrative against
-  its own log; leakage affects the classifier, not whether a narrative reports
-  its log correctly.
-- **Explanations are near-invariant across patients.** GAT draws its top five
-  from seven genes over sixty patients; that is a property of the explainer.
-- **No attribution is computed over node features**, so modality cannot reach
-  the narrator. This is a code fact, independent of any split.
+## What survives, and what must be retested
 
-The architecture ceiling result and every rate — grounding precision,
-hallucination exposure, fabrication — must be treated as unestablished until
-WP2 and WP6 land.
+Exactly **one** finding is a stable fact about the code rather than about a
+particular set of checkpoints:
+
+- **No attribution is computed over the node features.** Relevance is computed
+  over a mask on the edges and summed to nodes, so mRNA and methylation never
+  enter the explanation. True by inspection of `gnn_explanations.py`,
+  independent of any split, seed or checkpoint.
+
+Everything else is a **hypothesis to retest** after participant-grouped,
+multi-seed retraining, including two that an earlier draft of this plan wrongly
+listed as safe:
+
+- **Faithfulness/groundedness dissociation.** New checkpoints produce new
+  attributions and therefore new claims; the dissociation may narrow, widen or
+  reverse.
+- **Near-invariant explanations.** GAT's seven-gene top-five is a property of
+  *these* checkpoints. Retraining may change the degeneracy entirely.
+- **The architecture ceiling result**, and every rate: grounding precision,
+  hallucination exposure, fabrication, modality language.
+
+Accuracy is **expected to change** rather than necessarily to fall: removing 16
+train–test participant overlaps removes an optimistic bias, while grouped folds
+also alter class balance and training-set size, and the net effect is not
+predictable in advance.
