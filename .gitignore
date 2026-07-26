@@ -30,3 +30,10 @@ data/
 
 # Unpublished paper results -- keep local until submission
 RESULTS.md
+
+# Internal planning, legal and ethics material must never be published here.
+# Canonical copies live in ../gnnarrate-private/
+drafts/
+REMEDIATION-PLAN.md
+PROVENANCE-MATRIX.md
+build_provenance_matrix.py
